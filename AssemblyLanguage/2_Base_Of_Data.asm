@@ -17,6 +17,8 @@ CMAIN:
     ; 0 1 2 3 4 5 6 7 8 9 A B C D E F
     ; 0x00 
     
+    ; 0b10010101 = 0b 1001 0101 = 0x95?
+    
     PRINT_STRING msg
     
     xor rax, rax
