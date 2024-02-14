@@ -14,15 +14,37 @@ CMAIN:
     ; -- sp (Stack Pointer) : 현재 스택 top 위치 (일종의 cursor)
     ; -- bp (Base Pointer) : 스택 상대주소 계산용
     
-    push 1
+    push rax
+    push rbx
+    push 5
     push 2
     call MAX
-    
+    PRINT_DEC 8, rax
+    NEWLINE
+    add rsp, 16
+    pop rbx
+    pop rax
     
     xor rax, rax
     ret
     
 MAX:
+    push rbp
+    mov rbp, rsp
+    
+    mov rax,[rbp+16]
+    mov rbx, [rbp+24]
+    cmp rax, rbx
+    jg L1
+    mov rax, rbx
+L1:
+    pop rbp
+    ret
+    
+    ; [!] 스택(stack)이라는 메모리 영역을 사용
+    ; 함수가 사용하는 일종의 메모장
+    ; - 매개 변수 전달
+    ; - 돌아갈 주소 관리
         
                         
     ; 초기화 된 데이터
