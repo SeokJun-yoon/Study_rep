@@ -59,6 +59,8 @@ void EnterLobby()
 		CreatePlayer(&playerinfo);
 		PrintStatInfo("Player", playerinfo);
 
+		EnterGame(&playerinfo);
+
 	}
 }
 
@@ -137,7 +139,10 @@ void EnterGame(StatInfo* playerInfo)
 
 		if (input == 1 || input == 2)
 		{
-			EnterBattle();
+			int index = input - 1;
+			bool victory = EnterBattle(playerInfo, &(monsterInfo[index]));
+			if (victory == false)
+				break;
 		}
 	}
 }
