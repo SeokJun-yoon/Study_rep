@@ -7,7 +7,7 @@ using namespace std;
 // main
 // - EnterLobby (Player Info)
 // -- CreatePlayer
-// -- EnterGame
+// -- EnterGame (MonsterInfo)	// 스택 메모리의 특징을 활용하여 Info의 생존범위를 잘 관리해야 한다.
 // --- CreateMonsters
 // --- EnterBattle
 
