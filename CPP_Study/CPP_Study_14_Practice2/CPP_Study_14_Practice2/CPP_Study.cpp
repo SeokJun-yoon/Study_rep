@@ -20,36 +20,85 @@ void PrintBoard()
 	}
 }
 
+#pragma region 내 풀이
+//void SetBoard()
+//{
+//	if (N % 2 == 0)
+//	{
+//	int value = 0;
+//
+//		for (int t = 0; t < (N / 2); t++)
+//		{
+//			for (int i = 0; i < N-1-(t*2); i++)
+//			{
+//				value++;
+//				board[0+t][i+t] = value;	
+//			}
+//		
+//			for (int j = 0; j < N-1- (t * 2); j++)
+//			{
+//				value++;
+//				board[j + t][N - 1 - t] = value;
+//			}
+//		
+//			for (int k = 0; k < N-1- (t * 2); k++)
+//			{
+//				value++;
+//				board[N - 1 - t][N - 1 - k - t] = value;
+//			}
+//			
+//			for (int l = 0; l < N - 1- (t * 2); l++)
+//			{
+//				value++;
+//				board[N - 1 - l - t][0 + t] = value;
+//			}
+//
+//		}
+//
+//	}
+//	else
+//	{
+//		int value = 0;
+//
+//		for (int t = 0; t < (N / 2); t++)
+//		{
+//			for (int i = 0; i < N - 1 - (t * 2); i++)
+//			{
+//				value++;
+//				board[0 + t][i + t] = value;
+//			}
+//
+//			for (int j = 0; j < N - 1 - (t * 2); j++)
+//			{
+//				value++;
+//				board[j + t][N - 1 - t] = value;
+//			}
+//
+//			for (int k = 0; k < N - 1 - (t * 2); k++)
+//			{
+//				value++;
+//				board[N - 1 - t][N - 1 - k - t] = value;
+//			}
+//
+//			for (int l = 0; l < N - 1 - (t * 2); l++)
+//			{
+//				value++;
+//				board[N - 1 - l - t][0 + t] = value;
+//			}
+//
+//		}
+//		board[(N/2)][N/2] = value + 1;
+//	}
+//
+//}
+#pragma endregion
+
+#pragma region 강사님 풀이
 void SetBoard()
 {
-	if (N % 2 == 0)
-	{
-		for (int t = 0; t < (N / 2); t++)
-		{
-			for (int i = 0; i < N; i++)
-			{
-				board[0+t][i+t] = i + 1;
-			}
 
-			for (int j = 0; j < N; j++)
-			{
-				board[j+t][N - 1+t] = N + j;
-			}
-
-			for (int k = 0; k < N; k++)
-			{
-				board[N - 1+t][N - 1 - k+t] = (N * 2 - 1) + k;
-			}
-
-			for (int l = 0; l < N - 1; l++)
-			{
-				board[N - 1 - l+t][0+t] = (1 + (N - 1) * 3) + l;
-			}
-
-		}
-
-	}
 }
+#pragma endregion
 
 int main()
 {
