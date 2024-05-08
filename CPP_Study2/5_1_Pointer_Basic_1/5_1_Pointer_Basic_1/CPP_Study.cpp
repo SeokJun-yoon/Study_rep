@@ -3,9 +3,16 @@ using namespace std;
 
 // 오늘의 주제 : 포인터
 
+void SetHp(int* hp)
+{
+	*hp = 100;
+}
 
+// [매개변수][RET][지역변수(hp)] [매개변수(주소)][RET][지역변수]
 int main()
 {
+	int hp = 1;
+	SetHp(&hp);
 	// 지금까지 사용한 방식
 	// number라는 이름의 4바이트 정수 타입의 바구니를 만든다
 	// number라는 변수 스택 메모리에 할당
@@ -40,6 +47,21 @@ int main()
 
 	int value1 = *ptr;
 	*ptr = 2;
+
+	// TYPE은 왜 붙여줄까?
+	// * = 포인터의 의미 = 주소를 저장하는 바구니
+	
+	// 주소에 가면 뭐가 있는데?
+	// ex) 결혼식 청첩장에 있는 주소 = 예식장 주소
+	// ex) 명함에 있는 주소 = 회사 주소
+	// * = 포인터 (주소 담는 바구니)
+
+	// 0b101010101111
+
+	// 타입의 불일치
+	__int64* ptr2 = (__int64*)&number;
+
+	*ptr2 = 0xAABBCCDDEEFF;
 
 
 	return 0;
