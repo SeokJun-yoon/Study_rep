@@ -19,6 +19,7 @@ void IncreaseHp(int hp)
 	hp=hp+1;
 }
 
+// [매개변수][RET][지역변수(hp=1)] [매개변수(hp=2)][RET][지역변수]
 int main()
 {
 	cout << "전역 변수의 값은 " << globalValue << endl;
