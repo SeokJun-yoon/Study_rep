@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{37BFCAE5-DA71-4574-B933-ECCAE6F212AF}</ProjectGuid>
-    <RootNamespace>My67OperatorOverloading</RootNamespace>
+    <ProjectGuid>{C109E14A-FA6A-44DE-9832-FA4A275D0568}</ProjectGuid>
+    <RootNamespace>My68OOPFinal</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
