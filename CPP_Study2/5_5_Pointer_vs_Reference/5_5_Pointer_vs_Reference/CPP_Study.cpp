@@ -30,15 +30,22 @@ void CreateMonster(StatInfo info)
 // 특정 조건을 만족하는 몬스터를 찾는 함수
 StatInfo* FindMonster()
 {
+	// TODO : Heap 영역에서 뭔가를 찾아봄
+	// 찾았다!
+	// return monster~;
 
+	return nullptr;
 }
 
 
 StatInfo globalInfo;
 // 2) 주소 전달 방식
 // [매개변수][RET][지역변수(info)] [매개변수(&info)][RET][지역변수]
-void PrintInfo(const StatInfo* const info)
+void PrintInfoByPtr(const StatInfo* const info)
 {
+	if (info == nullptr)
+		return;
+
 	cout << "---------------------------" << endl;
 	cout << "HP: " << info->hp << endl;
 	cout << "ATT: " << info->attack << endl;
@@ -72,7 +79,7 @@ void PrintInfo(const StatInfo* const info)
 // 주소 전달처럼 주소값을 이용해 진본을 건드리는
 // 일석이조의 방식!
 
-void PrintInfo(const StatInfo& info)
+void PrintInfoByRef(const StatInfo& info)
 {
 	cout << "---------------------------" << endl;
 	cout << "HP: " << info.hp << endl;
@@ -84,6 +91,11 @@ void PrintInfo(const StatInfo& info)
 	//info.hp=10000;	const를 사용해서 막음
 }
 
+#define OUT
+void ChangeInfo(OUT StatInfo& info)
+{
+	info.hp = 1000;
+}
 
 int main()
 {
@@ -115,9 +127,29 @@ int main()
 
 	StatInfo* pointer = nullptr; // 어떠한 주소도 가리키고 있지 않은 상태다 -> nullptr
 	pointer=&info;
-	PrintInfo(pointer);
+	PrintInfoByPtr(pointer);
 
 	StatInfo& reference=info;
-	PrintInfo(reference);
+	PrintInfoByRef(reference);
+
+	// 그래서 결론은?
+	// 사실 Team By Team... 정해진 답은 없다
+	// ex) 구글에서 만든 오픈소스를 보면 거의 무조건 포인터 사용
+	// ex) 언리얼 엔진에선 reference도 애용
+
+	// Rookiss 선호 스타일)
+	// - 없는 경우도 고려해야 한다면 pointer (null 체크 필수)
+	// - 바뀌지 않고 읽는 용도(readonly)만 사용하면 const ret&
+	// - 그 외 일반적으로 ret (명시적으로 호출할 때 OUT을 붙인다)
+	ChangeInfo(OUT info);
+
+	// Bonus) 포인터로 사용하던걸 참조로 넘겨주려면?
+	// pointer[ 주소(&info) ]	ref, info [ 데이터 ]
+	PrintInfoByRef(*pointer);
+
+	// Bonus) 참조로 사용하던걸 포인터로 넘겨주려면?
+	// pointer[ 주소 ]	reference, info[ 데이터 ]
+	PrintInfoByPtr(&reference);
+
 	return 0;
 }
