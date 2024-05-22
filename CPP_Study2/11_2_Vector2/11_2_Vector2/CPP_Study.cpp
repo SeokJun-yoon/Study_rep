@@ -22,6 +22,8 @@ int main()
 
 	vector<int> v(10);
 
+	v.reserve(1000);
+
 	for (vector<int>::size_type i = 0; i < v.size(); i++)
 	{
 		v[i] = i;
@@ -59,9 +61,41 @@ int main()
 	// *cit1 = 100; // const이므로 수정 불가
 	
 	// 자주 활용할 일은 없음. 알아만 둘 것
-	for (vector<int>::reverse_iterator it = v.rbegin(); it != v.rend(); ++i)
+	for (vector<int>::reverse_iterator it = v.rbegin(); it != v.rend(); ++it)
 	{
 		cout << (*it) << endl;
+	}
+
+	// - 중간 삽입/삭제 (BAD)
+	// - 처음/끝 삽입/삭제 (BAD / GOOD)
+	// - 임의 접근 (Random Access)
+
+	// vector = 동적 배열 = 동적으로 커지는 배열 = 배열
+	// 원소가 하나의 메모리 블록에 연속하게 저장된다 !!!
+
+	// [                 ]
+	// [0][1][2][3][4][][]
+	//v.push_back(1);
+	//v.pop_back();
+	// 끝에 데이터는 넣고 빼기 편하다
+
+	/*vector<int>::iterator insertIt= v.insert(v.begin() + 2, 5);
+	vector<int>::iterator eraseIt1= v.erase(v.begin() + 2);
+	vector<int>::iterator eraseIt2= v.erase(v.begin() + 2,v.begin()+4);*/
+
+	// 쭉~ 스캔을 하면서, 3이라는 데이터가 있으면 일괄 삭제하고 싶다
+
+	for (vector<int>::iterator it = v.begin(); it != v.end();)
+	{
+		int data = *it;
+		if (data == 3)
+		{
+			it=v.erase(it);
+		}
+		else
+		{
+			++it;
+		}
 	}
 
 	return 0;
