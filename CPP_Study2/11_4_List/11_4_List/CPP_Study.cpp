@@ -11,7 +11,7 @@ using namespace std;
 // list : 연결 리스트
 
 // [1] -> [2] -> [3] -> [4] -> [5]
-// [1] <-> [2] <-> [3] <-> [4] <-> [5]
+// [1] <-> [2] <-> [3] <-> [4] <-> [5] <-> [6] <-> [ _Myhead : end() ]
 // [1] <-> [2] <-> [3] <-> [4] <-> [5] <->
 
 // [1]    ->    [2]   ->  [3] -> [4]->[5]
@@ -50,6 +50,9 @@ int main()
 	list<int>::iterator itBegin=li.begin();
 	list<int>::iterator itEnd=li.end();
 	
+	int* ptrBegin = &(li.front());
+	int* ptrEnd = &(li.back());
+
 	for (list<int>::iterator it = li.begin(); it != li.end(); ++it)
 	{
 		cout << *it << endl;
