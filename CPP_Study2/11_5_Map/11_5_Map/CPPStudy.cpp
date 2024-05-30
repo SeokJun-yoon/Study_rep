@@ -146,6 +146,11 @@ int main()
 		cout << m[i] << endl;
 	}
 
+	// 넣고 (insert, [])
+	// 빼고 (erase)
+	// 찾고 (find, [])
+	// 반복자 (map::iterator) (*it) pair<key,value>&
+
 #pragma endregion map
 	return 0;
 }
