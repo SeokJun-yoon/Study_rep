@@ -1,10 +1,10 @@
-ï»¿#include <iostream>
+#include <iostream>
 #include <WS2tcpip.h>
 #include <vector>
 using namespace std;
 
-#pragma comment(lib, "Ws2_32.lib") // Ws2_32 ë¼ì´ë¸ŒëŸ¬ë¦¬ ì¶”ê°€
-#define PORT 50000
+#pragma comment(lib, "Ws2_32.lib") // Ws2_32 ¶óÀÌºê·¯¸® Ãß°¡
+#define PORT 3500
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -28,7 +28,7 @@ struct ChessPiece {
     char command;
 };
 
-int interval = 80; // ê°„ê²© ê°’
+int interval = 80; // °£°İ °ª
 ChessPiece chesspiece;
 
 int main()
@@ -37,23 +37,23 @@ int main()
     WSADATA WSAData;
     WSAStartup(MAKEWORD(2, 2), &WSAData);
 
-    // ì†Œì¼“ ìƒì„± ë‹¨ê³„ (IPv4, TCP)
+    // ¼ÒÄÏ »ı¼º ´Ü°è (IPv4, TCP)
     SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, 0);
 
-    // ì£¼ì†Œ ì„¤ì • ë‹¨ê³„ (ì•„ì´í”¼ ì£¼ì†Œ / í¬íŠ¸ ë²ˆí˜¸ ì„¤ì •)
+    // ÁÖ¼Ò ¼³Á¤ ´Ü°è (¾ÆÀÌÇÇ ÁÖ¼Ò / Æ÷Æ® ¹øÈ£ ¼³Á¤)
     SOCKADDR_IN serverAddr;
     memset(&serverAddr, 0, sizeof(SOCKADDR_IN));
     serverAddr.sin_family = AF_INET; // IPv4
     serverAddr.sin_port = htons(PORT);
-    serverAddr.sin_addr.s_addr = INADDR_ANY; // ëˆ„êµ¬ë‚˜ ì ‘ì† ê°€ëŠ¥í•˜ë„ë¡
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // ´©±¸³ª Á¢¼Ó °¡´ÉÇÏµµ·Ï
 
-    // bind ë‹¨ê³„ (ì†Œì¼“ê³¼ ì£¼ì†Œë¥¼ ë¬¶ëŠ”ë‹¤.)
+    // bind ´Ü°è (¼ÒÄÏ°ú ÁÖ¼Ò¸¦ ¹­´Â´Ù.)
     if (bind(listenSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
         error_display("bind() error", WSAGetLastError());
         return 1;
     }
 
-    // listen ë‹¨ê³„ (í´ë¼ì´ì–¸íŠ¸ê°€ ì ‘ì† ê°€ëŠ¥í•œ ëŒ€ê¸° ìƒíƒœ)
+    // listen ´Ü°è (Å¬¶óÀÌ¾ğÆ®°¡ Á¢¼Ó °¡´ÉÇÑ ´ë±â »óÅÂ)
     if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR) {
         error_display("listen() error", WSAGetLastError());
         return 1;
@@ -79,36 +79,36 @@ int main()
                 break;
             }
 
-            // í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ë°›ì€ ëª…ë ¹ì— ë”°ë¼ ì²´ìŠ¤ ë§ì˜ ìœ„ì¹˜ ì¡°ì •
-            if (chesspiece.command == 'L') // ì¢Œ ë°©í–¥í‚¤ ì…ë ¥ ì‹œ
+            // Å¬¶óÀÌ¾ğÆ®·ÎºÎÅÍ ¹ŞÀº ¸í·É¿¡ µû¶ó Ã¼½º ¸»ÀÇ À§Ä¡ Á¶Á¤
+            if (chesspiece.command == 'L') // ÁÂ ¹æÇâÅ° ÀÔ·Â ½Ã
             {
                 chesspiece.x -= interval;
                 if (chesspiece.x < interval * 0)
                     chesspiece.x = interval * 0;
             }
 
-            if (chesspiece.command == 'R') // ìš° ë°©í–¥í‚¤ ì…ë ¥ ì‹œ
+            if (chesspiece.command == 'R') // ¿ì ¹æÇâÅ° ÀÔ·Â ½Ã
             {
                 chesspiece.x += interval;
                 if (chesspiece.x > interval * 7)
                     chesspiece.x = interval * 7;
             }
 
-            if (chesspiece.command == 'D') // í•˜ë‹¨ ë°©í–¥í‚¤ ì…ë ¥ ì‹œ
+            if (chesspiece.command == 'D') // ÇÏ´Ü ¹æÇâÅ° ÀÔ·Â ½Ã
             {
                 chesspiece.y += interval;
                 if (chesspiece.y > interval * 7)
                     chesspiece.y = interval * 7;
             }
 
-            if (chesspiece.command == 'U') // ìƒë‹¨ ë°©í–¥í‚¤ ì…ë ¥ ì‹œ
+            if (chesspiece.command == 'U') // »ó´Ü ¹æÇâÅ° ÀÔ·Â ½Ã
             {
                 chesspiece.y -= interval;
                 if (chesspiece.y < interval * 0)
                     chesspiece.y = interval * 0;
             }
 
-            // í´ë¼ì´ì–¸íŠ¸ì—ê²Œ ìˆ˜ì •ëœ ì²´ìŠ¤ ë§ì˜ ìœ„ì¹˜ ì „ì†¡
+            // Å¬¶óÀÌ¾ğÆ®¿¡°Ô ¼öÁ¤µÈ Ã¼½º ¸»ÀÇ À§Ä¡ Àü¼Û
             send(client_socket, (char*)&chesspiece, sizeof(chesspiece), 0);
         }
 

@@ -6,12 +6,11 @@
 using namespace std;
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
-constexpr int PORT = 50000; // 포트 번호 50000
+constexpr int PORT = 3500; // 포트 번호 50000
 
 char SERVER_ADDR[] = "127.0.0.1";   // 서버 주소, 127.0.0.1 은 자신을 가리키는 IP
 
 struct ChessPiece {
-    SOCKET clientID;
     short x, y;
     char command;
 };

@@ -6,7 +6,7 @@ using namespace std;
 
 #pragma comment(lib, "Ws2_32.lib") // Ws2_32 라이브러리 추가
 
-#define PORT 50000
+#define PORT 3500
 #define BUFFER_SIZE 1024
 
 #define _CRT_SECURE_NO_WARNINGS
