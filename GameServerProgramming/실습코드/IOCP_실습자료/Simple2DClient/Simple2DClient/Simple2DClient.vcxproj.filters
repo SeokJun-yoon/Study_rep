@@ -23,11 +23,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\SimpleIOCPServer\SimpleIOCPServer\protocol.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="chess2.png">
       <Filter>리소스 파일</Filter>
     </Image>
@@ -39,5 +34,10 @@
     <Font Include="cour.ttf">
       <Filter>리소스 파일</Filter>
     </Font>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\IOCP_GameServer\IOCP_GameServer\protocol.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

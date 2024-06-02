@@ -121,14 +121,14 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\SimpleIOCPServer\SimpleIOCPServer\protocol.h" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="chess2.png" />
     <Image Include="chessmap.bmp" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="cour.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\IOCP_GameServer\IOCP_GameServer\protocol.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
