@@ -80,6 +80,17 @@ void send_enter_packet(int user_id, int o_id)
 	send_packet(user_id, &p);
 }
 
+void send_leave_packet(int user_id, int o_id)
+{
+	sc_packet_leave p;
+	p.id = o_id;
+	p.size = sizeof(p);
+	p.type = S2C_LEAVE;
+
+	send_packet(user_id, &p);
+}
+
+
 
 void send_move_packet(int user_id, int mover)
 {
@@ -159,6 +170,45 @@ void initialize_clients()
 		g_clients[i].m_connected = false;
 }
 
+void disconnect(int user_id)
+{
+	g_clients[user_id].m_connected = false;
+	for (auto& cl : g_clients)
+		if (true==g_clients[cl.m_id].m_connected)
+		send_leave_packet(cl.m_id, user_id);
+}
+
+void recv_packet_construct(int user_id, int io_byte)
+{
+	CLIENT& cu = g_clients[user_id];
+	EXOVER& r_o = cu.m_recv_over;
+
+	int rest_byte = io_byte;
+	char* p = r_o.io_buf;
+	int packet_size = 0;
+	if (0 != cu.m_prev_size) packet_size = cu.m_pack_buf[0];
+	while (rest_byte > 0)
+	{
+		if (0 == packet_size) packet_size = *p;
+		if (packet_size <= rest_byte + cu.m_prev_size)
+		{
+			memcpy(cu.m_pack_buf+cu.m_prev_size, p, packet_size-cu.m_prev_size);
+			p += packet_size - cu.m_prev_size;
+			rest_byte-= packet_size - cu.m_prev_size;
+			packet_size = 0;
+			process_packet(user_id, cu.m_pack_buf);
+			cu.m_prev_size = 0;
+		}
+		else
+		{
+			memcpy(cu.m_pack_buf + cu.m_prev_size, p, rest_byte);
+			cu.m_prev_size += rest_byte;
+			rest_byte = 0;
+			p += rest_byte;
+		}
+	}
+}
+
 int main()
 {
 	WSADATA WSAData;
@@ -199,14 +249,17 @@ int main()
 
 		switch (exover->op)
 		{
-		case OP_RECV: {
-			process_packet(user_id, exover->io_buf);
-			ZeroMemory(&cl.m_recv_over.over, sizeof(cl.m_recv_over.over));
-			DWORD flags = 0;
-			WSARecv(cl.m_s, &cl.m_recv_over.wsabuf, 1, NULL, &flags, &cl.m_recv_over.over, NULL);
-		}
+		case OP_RECV: 
+			if (0 == io_byte) disconnect(user_id);
+			else {
+				recv_packet_construct(user_id, io_byte);
+				ZeroMemory(&cl.m_recv_over.over, sizeof(cl.m_recv_over.over));
+				DWORD flags = 0;
+				WSARecv(cl.m_s, &cl.m_recv_over.wsabuf, 1, NULL, &flags, &cl.m_recv_over.over, NULL);
+			}
 			break;
 		case OP_SEND :
+			if (0 == io_byte) disconnect(user_id);
 			delete exover;
 			break;
 		case OP_ACCEPT: {
