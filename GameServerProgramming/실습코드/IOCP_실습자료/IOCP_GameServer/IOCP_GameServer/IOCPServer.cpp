@@ -26,6 +26,7 @@ struct CLIENT {
 	EXOVER m_recv_over;
 	int m_prev_size;
 	char m_pack_buf[MAX_PACKET_SIZE];
+	bool m_connected;
 
 	short x, y;
 	char name[MAX_ID_LEN + 1];
@@ -65,14 +66,29 @@ void send_login_ok_packet(int user_id)
 	send_packet(user_id, &p);
 }
 
-void send_move_packet(int user_id)
+void send_enter_packet(int user_id, int o_id)
+{
+	sc_packet_enter p;
+	p.id = o_id;
+	p.size = sizeof(p);
+	p.type = S2C_ENTER;
+	p.x = g_clients[o_id].x;
+	p.y = g_clients[o_id].y;
+	strcpy_s(p.name, g_clients[o_id].name);
+	p.o_type = O_PLAYER;
+
+	send_packet(user_id, &p);
+}
+
+
+void send_move_packet(int user_id, int mover)
 {
 	sc_packet_move p;
-	p.id = user_id;
+	p.id = mover;
 	p.size = sizeof(p);
-	p.type = S2C_LOGIN_OK;
-	p.x = g_clients[user_id].x;
-	p.y = g_clients[user_id].y;
+	p.type = S2C_MOVE;
+	p.x = g_clients[mover].x;
+	p.y = g_clients[mover].y;
 
 	send_packet(user_id, &p);
 }
@@ -95,7 +111,23 @@ void do_move(int user_id, int direction)
 	}
 	u.x = x;
 	u.y = y;
-	send_move_packet(user_id);
+	for (auto &cl:g_clients)
+		if (true==cl.m_connected)
+			send_move_packet(cl.m_id, user_id);
+}
+
+void enter_game(int user_id)
+{
+	g_clients[user_id].m_connected = true;
+	for (int i = 0; i < MAX_USER; i++)
+	{
+		if (true == g_clients[i].m_connected)
+			if (user_id != i)
+			{
+				send_enter_packet(user_id, i);
+				send_enter_packet(i, user_id);
+			}
+	}
 }
 
 void process_packet(int user_id, char* buf)
@@ -106,6 +138,7 @@ void process_packet(int user_id, char* buf)
 		strcpy_s(g_clients[user_id].name, packet->name);
 		g_clients[user_id].name[MAX_ID_LEN] = NULL;
 		send_login_ok_packet(user_id);
+		enter_game(user_id);
 	}
 		break;
 	case C2S_MOVE: {
@@ -118,6 +151,12 @@ void process_packet(int user_id, char* buf)
 		DebugBreak();	// Break 포인트가 걸린 것 처럼 멈추고 상태를 표시하라는 의미
 		exit(-1);
 	}
+}
+
+void initialize_clients()
+{
+	for (int i = 0; i < MAX_USER; ++i) 
+		g_clients[i].m_connected = false;
 }
 
 int main()
@@ -137,6 +176,8 @@ int main()
 	listen(l_socket, SOMAXCONN);
 
 	g_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
+
+	initialize_clients();
 	CreateIoCompletionPort(reinterpret_cast<HANDLE>(l_socket), g_iocp, 999, 0);
 
 	SOCKET c_socket= WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
