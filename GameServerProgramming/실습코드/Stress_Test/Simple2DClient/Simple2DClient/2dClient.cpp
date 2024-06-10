@@ -7,16 +7,16 @@
 using namespace std;
 using namespace chrono;
 
-#include "..\..\IOCP_GameServer\IOCP_GameServer\protocol.h"
+#include "..\..\IOCPGameServer\IOCPGameServer\protocol.h"
 
 sf::TcpSocket g_socket;
 
-constexpr auto SCREEN_WIDTH = 8;
-constexpr auto SCREEN_HEIGHT = 8;
+constexpr auto SCREEN_WIDTH = 16;
+constexpr auto SCREEN_HEIGHT = 16;
 
 constexpr auto TILE_WIDTH = 65;
-constexpr auto WINDOW_WIDTH = TILE_WIDTH * SCREEN_WIDTH + 10;   // size of window
-constexpr auto WINDOW_HEIGHT = TILE_WIDTH * SCREEN_WIDTH + 10;
+constexpr auto WINDOW_WIDTH = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;   // size of window
+constexpr auto WINDOW_HEIGHT = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;
 constexpr auto BUF_SIZE = 200;
 constexpr auto MAX_USER = 10;
 
@@ -141,8 +141,8 @@ void ProcessPacket(char* ptr)
 		sc_packet_login_ok* my_packet = reinterpret_cast<sc_packet_login_ok*>(ptr);
 		g_myid = my_packet->id;
 		avatar.move(my_packet->x, my_packet->y);
-		g_left_x = my_packet->x - (SCREEN_WIDTH / 2); // ¸Ê ½ÃÀÛÀ§Ä¡
-		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2); // ¸Ê ½ÃÀÛÀ§Ä¡
+		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
+		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		avatar.show();
 	}
 	break;
@@ -154,8 +154,8 @@ void ProcessPacket(char* ptr)
 
 		if (id == g_myid) {
 			avatar.move(my_packet->x, my_packet->y);
-			g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
-			g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
+			//g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
+			//g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 			avatar.show();
 		}
 		else {
@@ -251,13 +251,16 @@ void client_main()
 	if (recv_result != sf::Socket::NotReady)
 		if (received > 0) process_data(net_buf, received);
 
-	for (int i = 0; i < SCREEN_WIDTH; ++i)
+	for (int i = 0; i < SCREEN_WIDTH; ++i) {
+		int tile_x = i + g_left_x;
+		if (tile_x >= WORLD_WIDTH) break;
+		if (tile_x < 0) continue;
 		for (int j = 0; j < SCREEN_HEIGHT; ++j)
 		{
-			int tile_x = i + g_left_x;
 			int tile_y = j + g_top_y;
-			if ((tile_x < 0) || (tile_y < 0)) continue;
-			//if (((tile_x + tile_y) % 2) == 0) {
+			if (tile_y < 0) continue;
+			if (tile_y >= WORLD_HEIGHT) break;
+			// if (((tile_x + tile_y) % 2) == 0) {
 			if (((tile_x / 3 + tile_y / 3) % 2) == 0) {
 				white_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
 				white_tile.a_draw();
@@ -268,6 +271,7 @@ void client_main()
 				black_tile.a_draw();
 			}
 		}
+	}
 	avatar.draw();
 	//	for (auto &pl : players) pl.draw();
 	for (auto& npc : npcs) npc.second.draw();
@@ -321,6 +325,12 @@ int main()
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH , WINDOW_HEIGHT), "2D CLIENT");
 	g_window = &window;
+
+	sf::View view = g_window->getView();
+	view.zoom(2.0f);
+	view.move(SCREEN_WIDTH * TILE_WIDTH / 4, SCREEN_HEIGHT * TILE_WIDTH / 4);
+	g_window->setView(view);
+
 
 	while (window.isOpen())
 	{

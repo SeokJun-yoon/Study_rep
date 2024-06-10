@@ -27,7 +27,7 @@ const static int MAX_BUFF_SIZE = 255;
 
 #pragma comment (lib, "ws2_32.lib")
 
-#include "..\..\2020_IOCP_SERVER\2020_IOCP_SERVER\protocol.h"
+#include "..\..\IOCPGameServer\IOCPGameServer\protocol.h"
 
 HANDLE g_hiocp;
 
@@ -54,6 +54,7 @@ struct CLIENT {
 	unsigned char packet_buf[MAX_PACKET_SIZE];
 	int prev_packet_data;
 	int curr_packet_size;
+	int seq_no;
 	high_resolution_clock::time_point last_move_time;
 };
 
@@ -127,7 +128,7 @@ void SendPacket(int cl, void* packet)
 void ProcessPacket(int ci, unsigned char packet[])
 {
 	switch (packet[1]) {
-	case SC_PACKET_MOVE: {
+	case S2C_MOVE: {
 		sc_packet_move* move_packet = reinterpret_cast<sc_packet_move*>(packet);
 		if (move_packet->id < MAX_CLIENTS) {
 			int my_id = client_map[move_packet->id];
@@ -145,10 +146,10 @@ void ProcessPacket(int ci, unsigned char packet[])
 			}
 		}
 	}
-					   break;
-	case SC_PACKET_ENTER: break;
-	case SC_PACKET_LEAVE: break;
-	case SC_PACKET_LOGIN_OK:
+			   break;
+	case S2C_ENTER: break;
+	case S2C_LEAVE: break;
+	case S2C_LOGIN_OK:
 	{
 		g_clients[ci].connected = true;
 		active_clients++;
@@ -278,8 +279,7 @@ void Adjust_Number_Of_Client()
 		DisconnectClient(client_to_close);
 		client_to_close++;
 		return;
-	}
-	else
+	} else 
 		if (DELAY_LIMIT < t_delay) {
 			delay_multiplier = 10;
 			return;
@@ -309,6 +309,7 @@ void Adjust_Number_Of_Client()
 	g_clients[num_connections].recv_over.wsabuf.buf =
 		reinterpret_cast<CHAR*>(g_clients[num_connections].recv_over.IOCP_buf);
 	g_clients[num_connections].recv_over.wsabuf.len = sizeof(g_clients[num_connections].recv_over.IOCP_buf);
+	g_clients[num_connections].seq_no = 0;
 
 	DWORD recv_flag = 0;
 	CreateIoCompletionPort(reinterpret_cast<HANDLE>(g_clients[num_connections].client_socket), g_hiocp, num_connections, 0);
@@ -318,7 +319,7 @@ void Adjust_Number_Of_Client()
 	int temp = num_connections;
 	sprintf_s(l_packet.name, "%d", temp);
 	l_packet.size = sizeof(l_packet);
-	l_packet.type = CS_LOGIN;
+	l_packet.type = C2S_LOGIN;
 	SendPacket(num_connections, &l_packet);
 
 
@@ -334,7 +335,6 @@ void Adjust_Number_Of_Client()
 	}
 	num_connections++;
 fail_to_connect:
-	return;
 }
 
 void Test_Thread()
@@ -349,12 +349,12 @@ void Test_Thread()
 			g_clients[i].last_move_time = high_resolution_clock::now();
 			cs_packet_move my_packet;
 			my_packet.size = sizeof(my_packet);
-			my_packet.type = CS_MOVE;
+			my_packet.type = C2S_MOVE;
 			switch (rand() % 4) {
-			case 0: my_packet.direction = MV_UP; break;
-			case 1: my_packet.direction = MV_DOWN; break;
-			case 2: my_packet.direction = MV_LEFT; break;
-			case 3: my_packet.direction = MV_RIGHT; break;
+			case 0: my_packet.direction = D_UP; break;
+			case 1: my_packet.direction = D_DOWN; break;
+			case 2: my_packet.direction = D_LEFT; break;
+			case 3: my_packet.direction = D_RIGHT; break;
 			}
 			my_packet.move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
 			SendPacket(i, &my_packet);
@@ -364,7 +364,7 @@ void Test_Thread()
 
 void InitializeNetwork()
 {
-	for (auto& cl : g_clients) {
+	for (auto &cl : g_clients) {
 		cl.connected = false;
 		cl.id = INVALID_ID;
 	}

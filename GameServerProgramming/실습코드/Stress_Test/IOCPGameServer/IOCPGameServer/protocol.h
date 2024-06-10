@@ -33,6 +33,7 @@ struct sc_packet_move {
 	char type;
 	int id;
 	short x, y;
+	unsigned move_time;
 };
 
 constexpr unsigned char O_PLAYER = 0;
@@ -53,7 +54,6 @@ struct sc_packet_leave {
 	int id;
 };
 
-
 struct cs_packet_login {
 	char	size;
 	char	type;
@@ -69,6 +69,7 @@ struct cs_packet_move {
 	char	size;
 	char	type;
 	char	direction;
+	unsigned move_time;
 };
 
 #pragma pack (pop)
