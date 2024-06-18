@@ -227,7 +227,7 @@ void enter_game(int user_id, char name[])
 
 	for (int i = 0; i < MAX_USER; i++) {
 		if (user_id == i) continue;
-		if (false == is_near(user_id, i))
+		if (true == is_near(user_id, i))
 		{
 			//g_clients[i].m_cl.lock();
 			if (ST_ACTIVE == g_clients[i].m_status)
