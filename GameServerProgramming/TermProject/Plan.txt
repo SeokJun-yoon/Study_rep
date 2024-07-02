@@ -1,0 +1,24 @@
+2D MMO RPG
+
+- 로비 구현
+
+- Login 구현 ( ID / PASSWORD 입력 + DB 연동)
+
+- PLAYER 구현 
+    - STATS : HP, ATT, DEF
+    - 상/하/좌/우 이동
+    -  (플레이어 -> NPC) 공격
+
+- 맵 구현
+
+- 채팅창 구현
+
+- PLAYER 시야처리 구현
+
+- NPC 구현 (LUA 연동)
+  - STATS : HP, ATT, DEF
+  - NPC 상/하/좌/우
+  - (NPC -> 플레이어) 공격
+
+- 점수 구현 (DB 연동)
+
