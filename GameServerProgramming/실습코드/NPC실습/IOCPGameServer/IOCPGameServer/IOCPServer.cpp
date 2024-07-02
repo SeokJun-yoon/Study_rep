@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
@@ -9,16 +10,35 @@
 #include <mutex>
 #include <unordered_set>
 #include <atomic>
+#include <chrono>
+#include <queue>
 using namespace std;
-
+using namespace chrono;
 #include "protocol.h"
+
 constexpr auto MAX_PACKET_SIZE = 255;
 constexpr auto MAX_BUF_SIZE = 1024;
 constexpr auto MAX_USER = 10000;
 
-constexpr auto VIEW_RADIUS = 5;
+constexpr auto VIEW_RADIUS = 6;
 
-enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT };
+enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE };
+
+struct event_type {
+	int obj_id;
+	ENUMOP event_id;
+	high_resolution_clock::time_point wakeup_time;
+	int target_id;
+
+	constexpr bool operator < (const event_type & left) const
+	{
+		return (wakeup_time > left.wakeup_time);
+	}
+};
+
+priority_queue<event_type> timer_queue;
+mutex timer_lock;
+
 enum C_STATUS { ST_FREE, ST_ALLOC, ST_ACTIVE };
 
 struct EXOVER {
@@ -43,13 +63,27 @@ struct CLIENT {
 	short x, y;
 	char m_name[MAX_ID_LEN + 1];
 	unsigned m_move_time;
+	high_resolution_clock::time_point m_last_move_time;
 
 	unordered_set <int> m_view_list;
 };
 
-CLIENT g_clients[MAX_USER];
+CLIENT g_clients[NPC_ID_START + NUM_NPC];
 HANDLE g_iocp;
 SOCKET l_socket;
+
+void add_timer(int obj_id, ENUMOP op_type, int duration)
+{
+	timer_lock.lock();
+	event_type ev{ obj_id, op_type, high_resolution_clock::now() + milliseconds(duration), 0 };
+	timer_queue.push(ev);
+	timer_lock.unlock();
+}
+
+bool is_player(int id)
+{
+	return id < NPC_ID_START;
+}
 
 bool is_near(int a, int b)	// 시야 확인
 {
@@ -97,7 +131,7 @@ void send_enter_packet(int user_id, int o_id)
 	p.x = g_clients[o_id].x;
 	p.y = g_clients[o_id].y;
 	strcpy_s(p.name, g_clients[o_id].m_name);
-	p.o_type = O_PLAYER;
+	p.o_type = O_HUMAN;
 
 	g_clients[user_id].m_cl.lock();
 	g_clients[user_id].m_view_list.insert(o_id);
@@ -166,9 +200,10 @@ void do_move(int user_id, int direction)
 
 	for (auto np : new_vl)	// np : new player
 	{
-		if (0 == old_vl.count(np))	// 이동하며 새로 보게 된 플레이어에 대한 처리
+		if (0 == old_vl.count(np))	// 이동하며 새로 보게 된 플레이어에 대한 처리 (Object가 새로 시야에 들어왔을 때)
 		{
 			send_enter_packet(user_id, np);
+			if (false == is_player(np)) continue;
 			g_clients[np].m_cl.lock();
 			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대 viewlist에 내가 없을때
 			{
@@ -181,8 +216,9 @@ void do_move(int user_id, int direction)
 				send_move_packet(np, user_id);
 			}
 		}
-		else    // 이동하며 계속 보고 있었던 플레이어에 대한 처리
+		else    // 이동하며 계속 보고 있었던 플레이어에 대한 처리 (계속 시야에 존재하고 있을 때)
 		{
+			if (false == is_player(np)) continue;
 			g_clients[np].m_cl.lock();
 			if (0 != g_clients[np].m_view_list.count(user_id))
 			{
@@ -197,11 +233,12 @@ void do_move(int user_id, int direction)
 		}
 	}
 
-	for (auto old_p : old_vl)
+	for (auto old_p : old_vl)		// Object가 시야에서 벗어났을 때
 	{
 		if (0 == new_vl.count(old_p))
 		{
 			send_leave_packet(user_id, old_p);
+			if (false == is_player(old_p)) continue;
 			g_clients[old_p].m_cl.lock();
 			if (0 != g_clients[old_p].m_view_list.count(user_id))
 			{
@@ -216,6 +253,51 @@ void do_move(int user_id, int direction)
 	}
 }
 
+void random_move_npc(int id)
+{
+	int x = g_clients[id].x;
+	int y = g_clients[id].y;
+	switch (rand() % 4)
+	{
+	case 0: if (x < (WORLD_WIDTH - 1)) x++; break;
+	case 1: if (x > 0) x--; break;
+	case 2: if (y < (WORLD_HEIGHT - 1)) y++; break;
+	case 3: if (y > 0) y--; break;
+	}
+	g_clients[id].x = x;
+	g_clients[id].y = y;
+	for (int i = 0; i < NPC_ID_START; ++i)
+	{
+		if (ST_ACTIVE != g_clients[i].m_status) continue;
+		if (true == is_near(i, id))
+		{
+			g_clients[i].m_cl.lock();
+			if (0 != g_clients[i].m_view_list.count(id))
+			{
+				g_clients[i].m_cl.unlock();
+				send_move_packet(i, id);
+			}
+			else
+			{
+				g_clients[i].m_cl.unlock();
+				send_enter_packet(i, id);
+			}
+		}
+		else
+		{
+			g_clients[i].m_cl.lock();
+			if (0 != g_clients[i].m_view_list.count(id))
+			{
+				g_clients[i].m_cl.unlock();
+				send_leave_packet(i, id);
+			}
+			else
+				g_clients[i].m_cl.unlock();
+		}
+	}
+}
+
+
 void enter_game(int user_id, char name[])
 {
 	g_clients[user_id].m_cl.lock();
@@ -225,16 +307,19 @@ void enter_game(int user_id, char name[])
 	g_clients[user_id].m_status = ST_ACTIVE;
 	g_clients[user_id].m_cl.unlock();
 
-	for (int i = 0; i < MAX_USER; i++) {
+	for (auto &cl : g_clients) 
+	{
+		int i = cl.m_id;
 		if (user_id == i) continue;
 		if (true == is_near(user_id, i))
 		{
 			//g_clients[i].m_cl.lock();
 			if (ST_ACTIVE == g_clients[i].m_status)
-				if (user_id != i) {
-					send_enter_packet(user_id, i);
+			{
+				send_enter_packet(user_id, i);
+				if (true==is_player(i))
 					send_enter_packet(i, user_id);
-				}
+			}
 			//g_clients[i].m_cl.unlock();
 		}
 	}
@@ -277,7 +362,9 @@ void disconnect(int user_id)
 	g_clients[user_id].m_cl.lock();
 	g_clients[user_id].m_status = ST_ALLOC;
 	closesocket(g_clients[user_id].m_s);
-	for (auto& cl : g_clients) {
+	for (int i=0; i<NPC_ID_START;++i) 
+	{
+		CLIENT &cl = g_clients[i];
 		if (user_id == cl.m_id) continue;
 		//cl.m_cl.lock();
 		if (ST_ACTIVE == cl.m_status)
@@ -378,7 +465,82 @@ void worker_thread()
 				sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &exover->over);
 		}
 						break;
+		case OP_RANDOM_MOVE:
+			random_move_npc(user_id);
+			add_timer(user_id, OP_RANDOM_MOVE, 1000);
+			delete exover;
+			break;
+		default: 
+			cout << "Unknown Operation in worker_thread!\n";
+			while (true);
 		}
+	}
+}
+
+void init_npc()
+{
+	for (int i = NPC_ID_START; i < NPC_ID_START + NUM_NPC; ++i)
+	{
+		g_clients[i].m_s = 0;
+		g_clients[i].m_id = i;
+		sprintf_s(g_clients[i].m_name, "NPC%d", i);
+		g_clients[i].m_status = ST_ACTIVE;
+		g_clients[i].x = rand() % WORLD_WIDTH;
+		g_clients[i].y = rand() % WORLD_HEIGHT;
+		//g_clients[i].m_last_move_time = high_resolution_clock::now();
+		add_timer(i, OP_RANDOM_MOVE, 1000);
+	}
+}
+
+void do_ai()
+{
+	while (true) 
+	{
+		auto ai_start_time = high_resolution_clock::now();
+		for (int i = NPC_ID_START; i < NPC_ID_START + NUM_NPC; ++i)
+		{
+			if ((high_resolution_clock::now() - g_clients[i].m_last_move_time) > 1s)
+			{
+				random_move_npc(i);
+				g_clients[i].m_last_move_time = high_resolution_clock::now();
+			}
+		}
+		auto ai_time = high_resolution_clock::now() - ai_start_time;
+		cout << "AI Exec Time = " << duration_cast<milliseconds>(ai_time).count() << "ms\n";
+	}
+}
+
+void do_timer()
+{
+	while (true)
+	{
+		this_thread::sleep_for(1ms);
+		while (true)
+		{
+			timer_lock.lock();
+			if (true == timer_queue.empty())
+			{
+				timer_lock.unlock();
+				break;
+			}
+			if (timer_queue.top().wakeup_time > high_resolution_clock::now()) 
+			{
+				timer_lock.unlock();
+				break; 
+			}
+			event_type ev = timer_queue.top();
+			timer_queue.pop();
+			timer_lock.unlock();
+			switch (ev.event_id)
+			{
+			case OP_RANDOM_MOVE:
+				EXOVER *over = new EXOVER;
+				over->op = ev.event_id;
+				PostQueuedCompletionStatus(g_iocp, 1, ev.obj_id, &over->over);
+				//random_move_npc(ev.obj_id);
+ 				//add_timer(ev.obj_id, ev.event_id, 1000);
+			}
+		}	
 	}
 }
 
@@ -387,6 +549,9 @@ int main()
 	WSADATA WSAData;
 	WSAStartup(MAKEWORD(2, 2), &WSAData);
 
+	cout << "NPC Initialization start.\n";
+	init_npc();
+	cout << "NPC Initialization finished.\n";
 	l_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 
 	SOCKADDR_IN s_address;
@@ -412,5 +577,10 @@ int main()
 
 	vector <thread> worker_threads;
 	for (int i = 0; i < 4; ++i) worker_threads.emplace_back(worker_thread);
+
+	//thread ai_thread{ do_ai };
+	//ai_thread.join();
+
+	thread timer_thread{ do_timer };
 	for (auto& th : worker_threads) th.join();
 }
