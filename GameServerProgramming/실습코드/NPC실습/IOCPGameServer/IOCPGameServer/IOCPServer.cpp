@@ -4,6 +4,13 @@
 #include <MSWSock.h>
 #pragma comment (lib, "WS2_32.lib")
 #pragma comment (lib, "mswsock.lib")
+#pragma comment (lib, "lua53.lib")
+
+extern "C" {
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+}
 
 #include <vector>
 #include <thread>
@@ -22,7 +29,7 @@ constexpr auto MAX_USER = 10000;
 
 constexpr auto VIEW_RADIUS = 6;
 
-enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE };
+enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
 
 struct event_type {
 	int obj_id;
@@ -39,7 +46,7 @@ struct event_type {
 priority_queue<event_type> timer_queue;
 mutex timer_lock;
 
-enum C_STATUS { ST_FREE, ST_ALLOC, ST_ACTIVE };
+enum C_STATUS { ST_FREE, ST_ALLOC, ST_ACTIVE, ST_SLEEP };
 
 struct EXOVER {
 	WSAOVERLAPPED	over;
@@ -48,6 +55,7 @@ struct EXOVER {
 	union {
 		WSABUF			wsabuf;
 		SOCKET			c_socket;
+		int				p_id;
 	};
 };
 
@@ -66,6 +74,8 @@ struct CLIENT {
 	high_resolution_clock::time_point m_last_move_time;
 
 	unordered_set <int> m_view_list;
+	lua_State* L;
+	mutex lua_l;
 };
 
 CLIENT g_clients[NPC_ID_START + NUM_NPC];
@@ -167,6 +177,26 @@ void send_move_packet(int user_id, int mover)
 	send_packet(user_id, &p);
 }
 
+void send_chat_packet(int user_id, int chatter, char mess[])
+{
+	sc_packet_chat p;
+	p.id = chatter;
+	p.size = sizeof(p);
+	p.type = S2C_CHAT;
+	strcpy_s(p.mess, mess);
+
+	send_packet(user_id, &p);
+}
+
+
+void activate_npc(int id)
+{
+	C_STATUS old_state = ST_SLEEP;
+	if (true == atomic_compare_exchange_strong(&g_clients[id].m_status, &old_state, ST_ACTIVE))
+		add_timer(id, OP_RANDOM_MOVE, 1000);
+}
+
+
 void do_move(int user_id, int direction)
 {
 	CLIENT& u = g_clients[user_id];
@@ -191,10 +221,18 @@ void do_move(int user_id, int direction)
 	unordered_set<int> new_vl;	// 시야처리를 위한 viewlist를 set컨테이너로 선언
 	for (auto &cl : g_clients)	// 모든 클라이언트에 대해
 	{
+		if (false == is_near(cl.m_id, user_id)) continue;
+		if (ST_SLEEP==cl.m_status) 	activate_npc(cl.m_id);
 		if (ST_ACTIVE != cl.m_status) continue;
 		if (cl.m_id == user_id) continue;
-		if (true == is_near(cl.m_id, user_id))
-			new_vl.insert(cl.m_id);
+		if (false == is_player(cl.m_id))
+		{
+			EXOVER* over = new EXOVER;
+			over->op = OP_PLAYER_MOVE;
+			over->p_id = user_id;
+			PostQueuedCompletionStatus(g_iocp, 1, cl.m_id, &over->over);
+		}
+		new_vl.insert(cl.m_id);
 	}
 	send_move_packet(user_id, user_id);	// 나에게 내가 이동했다고 알려주어야 함. (밑에서는 알려주지 않음)
 
@@ -203,7 +241,7 @@ void do_move(int user_id, int direction)
 		if (0 == old_vl.count(np))	// 이동하며 새로 보게 된 플레이어에 대한 처리 (Object가 새로 시야에 들어왔을 때)
 		{
 			send_enter_packet(user_id, np);
-			if (false == is_player(np)) continue;
+			if (false == is_player(np))	continue;
 			g_clients[np].m_cl.lock();
 			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대 viewlist에 내가 없을때
 			{
@@ -314,6 +352,10 @@ void enter_game(int user_id, char name[])
 		if (true == is_near(user_id, i))
 		{
 			//g_clients[i].m_cl.lock();
+			if (ST_SLEEP == g_clients[i].m_status)
+			{
+				activate_npc(i);
+			}
 			if (ST_ACTIVE == g_clients[i].m_status)
 			{
 				send_enter_packet(user_id, i);
@@ -465,17 +507,70 @@ void worker_thread()
 				sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &exover->over);
 		}
 						break;
-		case OP_RANDOM_MOVE:
+		case OP_RANDOM_MOVE: {
 			random_move_npc(user_id);
-			add_timer(user_id, OP_RANDOM_MOVE, 1000);
+			bool keep_alive = false;
+			for (int i = 0; i < NPC_ID_START; ++i)
+				if (true == is_near(user_id, i))
+					if (ST_ACTIVE == g_clients[i].m_status)
+					{
+						keep_alive = true;
+						break;
+					}
+			if (true == keep_alive) add_timer(user_id, OP_RANDOM_MOVE, 1000);
+			else g_clients[user_id].m_status = ST_SLEEP;
 			delete exover;
+		}
 			break;
-		default: 
+		case OP_PLAYER_MOVE: {
+			g_clients[user_id].lua_l.lock();
+			lua_State *L = g_clients[user_id].L;
+			lua_getglobal(L, "event_player_move");
+			lua_pushnumber(L, exover->p_id);
+			int error = lua_pcall(L, 1, 0, 0);
+			if (error) cout << lua_tostring(L, -1);
+			//lua_pop(L, 1);
+			g_clients[user_id].lua_l.unlock();
+			delete exover;
+		}
+			 break;
+		default:
 			cout << "Unknown Operation in worker_thread!\n";
-			while (true);
+			while (true); 
+			
 		}
 	}
 }
+
+int API_SendMessage(lua_State* L)
+{
+	int my_id = (int)lua_tointeger(L, -3);
+	int user_id = (int)lua_tointeger(L, -2);
+	char *mess = (char*)lua_tostring(L, -1);
+
+	send_chat_packet(user_id, my_id, mess);
+	lua_pop(L, 3);
+	return 0;
+}
+
+int API_get_x(lua_State* L)
+{
+	int obj_id = (int)lua_tointeger(L, -1);
+	lua_pop(L, 2);
+	int x = g_clients[obj_id].x;
+	lua_pushnumber(L, x);
+	return 1;
+}
+
+int API_get_y(lua_State* L)
+{
+	int obj_id = (int)lua_tointeger(L, -1);
+	lua_pop(L, 2);
+	int y = g_clients[obj_id].y;
+	lua_pushnumber(L, y);
+	return 1;
+}
+
 
 void init_npc()
 {
@@ -484,11 +579,24 @@ void init_npc()
 		g_clients[i].m_s = 0;
 		g_clients[i].m_id = i;
 		sprintf_s(g_clients[i].m_name, "NPC%d", i);
-		g_clients[i].m_status = ST_ACTIVE;
+		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].x = rand() % WORLD_WIDTH;
 		g_clients[i].y = rand() % WORLD_HEIGHT;
 		//g_clients[i].m_last_move_time = high_resolution_clock::now();
-		add_timer(i, OP_RANDOM_MOVE, 1000);
+		//add_timer(i, OP_RANDOM_MOVE, 1000);
+		lua_State *L = g_clients[i].L = luaL_newstate();
+		luaL_openlibs(L);
+		luaL_loadfile(L, "NPC.LUA");
+		lua_pcall(L, 0, 0, 0);
+		lua_getglobal(L, "set_uid");
+		lua_pushnumber(L, i);
+		lua_pcall(L, 1, 0, 0);
+		lua_pop(L, 1);
+
+		lua_register(L, "API_send_message", API_SendMessage);
+		lua_register(L, "API_get_x", API_get_x);
+		lua_register(L, "API_get_y", API_get_y);
+
 	}
 }
 

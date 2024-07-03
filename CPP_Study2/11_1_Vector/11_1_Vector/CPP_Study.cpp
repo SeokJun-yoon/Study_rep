@@ -6,7 +6,7 @@ using namespace std;
 // 면접 단골
 int main()
 {
-	// STL (Standard TEmplate Library)
+	// STL (Standard Template Library)
 	// 프로그래밍할 때 필요한 자료구조/알고리즘들을
 	// 템플릿으로 제공하는 라이브러리
 
