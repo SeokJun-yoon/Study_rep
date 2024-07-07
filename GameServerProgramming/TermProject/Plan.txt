@@ -1,25 +1,58 @@
-2D MMO RPG
+< SIMPLEST MMORPG >
 
-- 로비 구현
+* Map size : 800 x 800
+* Window size : 20 x 20
 
-- Login 구현 ( ID / PASSWORD 입력 + DB 연동)
+< 게임 흐름? >
+콘솔로 ID / PASSWORD 입력 받고 시작. (user id / user password DB 연동 필요)
+입력받고 접속 할 때에 DB로 userdata 로드
+Player 이동하며, NPC에게 몬스터 처치 퀘스트를 받아, Monster(NPC) 전투 및 경험치 획득하며 LevelUp.
+총 3단계로, 2단계의 몬스터 처치 퀘스트와, 몬스터 처치 및 퀘스트 클리어 과정에서 레벨업을 통하여 공격범위/공격력 증가.
+보스몬스터 클리어가 최종 목표.
 
 - PLAYER 구현 
-    - STATS : HP, ATT, DEF
-    - 상/하/좌/우 이동
+    - 필요한 데이터? : name, position_X, position_Y, atk, hp, exp
+    - 상/하/좌/우 이동(move 구현)
+    - 시야처리 (시야범위 : ?)
     -  (플레이어 -> NPC) 공격 상/하/좌/우
 
 - 맵 구현
+지형 = 평면에 블록(장애물) 랜덤 배치
+
 
 - 채팅창 구현
+PLAYER 간 채팅 입력 가능하도록, 시야 범위 안에 있을 때만 채팅 보이게, 
+<NOTICE> (공지 구현), 플레이어 접속 시 전체 공지, 플레이어 LevelUp시 전체 공지
 
-- PLAYER 시야처리 구현
 
 - NPC 구현 (LUA 연동)
-  - STATS : HP, ATT, DEF
+  - STATS : name, hp, atk
   - NPC 상/하/좌/우
   - (NPC -> 플레이어) 공격 상/하/좌/우
+플레이어 발견 시 메시지 구현 ("Enemy!")
+3가지 몬스터 종류로 구성. (Level 1, Level 2,Boss Monster)
+Level1, Level 2 몬스터를 같은 수로 분배해서 맵 전체에 랜덤으로 생성시키기
+Boss Monster은 고정값 위치로 생성.
 
-- 점수 구현 (DB 연동)
 
-- UI 설계
+- 퀘스트 구현
+* 시작 포지션 근처에 고정 NPC 설치(퀘스트 주기 위함), 고정형 NPC의 시야범위는 PLAYER와 같게
+시야에 들어올 경우에 NPC 상단에 New Quest (Q) 문구 출력.
+NPC 상하좌우 1칸 거리 이내에서 Q키 누르면 퀘스트 수령.
+수령하면 화면 우측에 [monster name] (0/5) 표시. 
+1단계 몬스터 5마리 다 잡고 NPC에게 돌아가면 채팅창에 [1] Quest Complete! , LevelUP 및 보상으로 공격 범위 1 증가 및 공격력 5증가, 채팅창에 띄워주기
+NPC는 다시 New Quest (Q) 띄워주고 똑같이 Q키로 퀘스트 수령시 화면 우측에 [monster name] (0/5) 출력.
+2단계 몬스터 5마리 다 잡고 NPC에게 돌아가면 채팅창에 [2] Quest Complete!, LevelUp 및 보상으로 공격 범위 1 증가 및 공격력 5증가, 채팅창에 띄워주기
+NPC는 Last Quest (Q) 띄워주고 똑같이 Q키로 퀘스트 수령 시 화면 우측에 [Boss position (xx, xx)] (0/1) 출력
+BossMonster 처치 시에 화면 중앙에 CLEAR ! 띄우며 종료
+
+
+* UI에 필요한 부분
+좌상단 플레이어 현재 좌표.
+우상단 퀘스트 상황
+중앙상단 캐릭터 NAME, HP, ATT, ATT RANGE 
+우하단 채팅창
+
+* Etc
+몬스터의 플레이어 추적(AI)
+

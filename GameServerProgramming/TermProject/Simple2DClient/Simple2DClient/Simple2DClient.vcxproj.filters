@@ -13,46 +13,31 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="헤더 파일\lua">
-      <UniqueIdentifier>{e06d5484-21a4-4317-bc4c-944b0d965d1c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="헤더 파일\protocol">
-      <UniqueIdentifier>{41d93986-d030-4f9b-aaba-fbe24305f6ad}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lauxlib.h">
-      <Filter>헤더 파일\lua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua.h">
-      <Filter>헤더 파일\lua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua.hpp">
-      <Filter>헤더 파일\lua</Filter>
-    </ClInclude>
-    <ClInclude Include="luaconf.h">
-      <Filter>헤더 파일\lua</Filter>
-    </ClInclude>
-    <ClInclude Include="lualib.h">
-      <Filter>헤더 파일\lua</Filter>
-    </ClInclude>
-    <ClInclude Include="protocol.h">
-      <Filter>헤더 파일\protocol</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="IOCPServer.cpp">
+    <ClCompile Include="2dClient.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lua53.lib">
-      <Filter>리소스 파일</Filter>
-    </Library>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="NPC.LUA">
+    <Image Include="maptile.png">
       <Filter>리소스 파일</Filter>
-    </None>
+    </Image>
+    <Image Include="piece.png">
+      <Filter>리소스 파일</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="cour.ttf">
+      <Filter>리소스 파일</Filter>
+    </Font>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\TermProjectServer\TermProjectServer\protocol.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
