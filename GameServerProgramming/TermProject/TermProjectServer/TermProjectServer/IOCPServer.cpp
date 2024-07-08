@@ -648,7 +648,6 @@ void init_npc()
 		else if (i >= NPC2_ID_START && i < NPC3_ID_START)
 		{
 			sprintf_s(g_clients[i].m_name, "MONSTER 2");
-
 		}
 
 		else

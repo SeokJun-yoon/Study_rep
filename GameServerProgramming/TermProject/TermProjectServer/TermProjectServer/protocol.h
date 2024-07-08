@@ -41,6 +41,7 @@ constexpr unsigned char D_RIGHT = 3;
 
 #define C2S_LOGIN	1
 #define C2S_MOVE	2
+#define C2S_ATTACK  3
 
 char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 #include <random>
@@ -107,6 +108,11 @@ struct cs_packet_move {
 	char	type;
 	char	direction;
 	unsigned move_time;
+};
+
+struct cs_packet_attack {
+	char	size;
+	char	type;
 };
 
 #pragma pack (pop)

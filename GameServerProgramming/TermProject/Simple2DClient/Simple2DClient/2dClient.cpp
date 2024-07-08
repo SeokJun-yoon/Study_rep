@@ -28,13 +28,14 @@ int g_myid;
 sf::RenderWindow* g_window;
 sf::Font g_font;
 
-//char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
+// Flags
+bool is_attack = false;
 
 class OBJECT {
 private:
 	bool m_showing;
 	sf::Sprite m_sprite;
-	//sf::Sprite m_sprite_attack;
+	sf::Sprite m_sprite_attack;
 	//sf::Sprite m_sprite_damage;
 
 	char m_mess[MAX_STR_LEN];	// for message
@@ -59,6 +60,12 @@ public:
 	OBJECT() {
 		m_showing = false;
 		m_time_out = high_resolution_clock::now();
+	}
+
+	void set_attack(sf::Texture& t, int x, int y, int x2, int y2)
+	{
+		m_sprite_attack.setTexture(t);
+		m_sprite_attack.setTextureRect(sf::IntRect(x, y, x2, y2));
 	}
 
 	void show()
@@ -96,6 +103,20 @@ public:
 			m_text.setPosition(rx - 10, ry + 15);
 			g_window->draw(m_text);
 		}
+		if (is_attack == true)
+		{
+			m_sprite_attack.setPosition(rx + TILE_WIDTH, ry);
+			g_window->draw(m_sprite_attack);
+
+			m_sprite_attack.setPosition(rx - TILE_WIDTH, ry);
+			g_window->draw(m_sprite_attack);
+
+			m_sprite_attack.setPosition(rx, ry +TILE_WIDTH);
+			g_window->draw(m_sprite_attack);
+
+			m_sprite_attack.setPosition(rx, ry - TILE_WIDTH);
+			g_window->draw(m_sprite_attack);
+		}
 	}
 	void set_name(char str[]) {
 		m_name.setFont(g_font);
@@ -119,6 +140,8 @@ OBJECT monster_1;
 OBJECT monster_2;
 OBJECT boss_monster;
 OBJECT quest_npc;
+OBJECT attack;
+
 
 sf::Texture* piece;
 sf::Texture* maptile;
@@ -127,6 +150,7 @@ sf::Texture* monster1;
 sf::Texture* monster2;
 sf::Texture* bossmonster;
 sf::Texture* questnpc;
+sf::Texture* attacktex;
 
 void client_initialize()
 {
@@ -137,6 +161,8 @@ void client_initialize()
 	monster2 = new sf::Texture;
 	bossmonster = new sf::Texture;
 	questnpc = new sf::Texture;
+	attacktex = new sf::Texture;
+
 	if (false == g_font.loadFromFile("cour.ttf")) {
 		cout << "Font Loading Error!\n";
 		while (true);
@@ -148,6 +174,8 @@ void client_initialize()
 	monster2->loadFromFile("monster2.png");
 	bossmonster->loadFromFile("boss.png");
 	questnpc->loadFromFile("questnpc.png");
+	attacktex->loadFromFile("attack1.png");
+	
 	map_tile = OBJECT{ *maptile, 0, 0, TILE_WIDTH, TILE_WIDTH };
 	block_tile = OBJECT{ *blocktile, 0, 0, TILE_WIDTH, TILE_WIDTH };
 	
@@ -161,6 +189,8 @@ void client_initialize()
 	}
 	
 	avatar = OBJECT{ *piece, 0, 0, 64, 64 };
+
+	avatar.set_attack(*attacktex, 0, 0, 64, 64);
 	avatar.move(4, 4);
 }
 
@@ -173,6 +203,7 @@ void client_finish()
 	delete monster2;
 	delete bossmonster;
 	delete questnpc;
+	delete attacktex;
 }
 
 void ProcessPacket(char* ptr)
@@ -226,6 +257,7 @@ void ProcessPacket(char* ptr)
 		int other_id = my_packet->id;
 		if (other_id == g_myid) {
 			avatar.move(my_packet->x, my_packet->y);
+			attack.move(my_packet->x, my_packet->y);
 			g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 			g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		}
@@ -362,6 +394,13 @@ void send_move_packet(unsigned char dir)
 	send_packet(&m_packet);
 }
 
+void send_attack_packet()
+{
+	cs_packet_attack m_packet;
+	m_packet.type = C2S_ATTACK;
+	m_packet.size = sizeof(m_packet);
+	send_packet(&m_packet);
+}
 
 int main()
 {
@@ -401,7 +440,7 @@ int main()
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
-			if (event.type == sf::Event::KeyPressed) {
+			if (event.type == sf::Event::KeyPressed) {	// 키 누를 때
 				int p_type = -1;
 				switch (event.key.code) {
 				case sf::Keyboard::Left:
@@ -416,9 +455,22 @@ int main()
 				case sf::Keyboard::Down:
 					send_move_packet(D_DOWN);
 					break;
+				case sf::Keyboard::A:
+					is_attack = true;
+					send_attack_packet();
+					break;
 				case sf::Keyboard::Escape:
 					window.close();
+
 					break;
+				}
+			}
+			if (event.type == sf::Event::KeyReleased)	// 키를 뗄 때
+			{
+				switch (event.key.code)
+				{
+				case sf::Keyboard::A:
+					is_attack = false;
 				}
 			}
 		}
