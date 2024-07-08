@@ -211,7 +211,7 @@ void ProcessPacket(char* ptr)
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
 			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER)
 				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
-			else if (id == QUEST_NPC_NUMBER)
+			else
 				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 };
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);

@@ -76,7 +76,7 @@ struct CLIENT {
 	mutex lua_l;
 };
 
-CLIENT g_clients[NPC_ID_START + NUM_NPC];
+CLIENT g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
 
@@ -675,25 +675,25 @@ void init_npc()
 
 
 	//// Quest NPC
-	//g_clients[QUEST_NPC_NUMBER].m_s = 0;
-	//g_clients[QUEST_NPC_NUMBER].m_id = QUEST_NPC_NUMBER;
-	//sprintf_s(g_clients[QUEST_NPC_NUMBER].m_name, "QUEST_NPC");
-	//g_clients[QUEST_NPC_NUMBER].m_status = ST_SLEEP;
-	//g_clients[QUEST_NPC_NUMBER].x = 15;
-	//g_clients[QUEST_NPC_NUMBER].y = 15;
+	g_clients[QUEST_NPC_NUMBER].m_s = 0;
+	g_clients[QUEST_NPC_NUMBER].m_id = QUEST_NPC_NUMBER;
+	sprintf_s(g_clients[QUEST_NPC_NUMBER].m_name, "QUEST_NPC");
+	g_clients[QUEST_NPC_NUMBER].m_status = ST_ACTIVE;
+	g_clients[QUEST_NPC_NUMBER].x = 15;
+	g_clients[QUEST_NPC_NUMBER].y = 15;
 
-	//lua_State *L = g_clients[i].L = luaL_newstate();
-	//luaL_openlibs(L);
-	//luaL_loadfile(L, "NPC.LUA");
-	//lua_pcall(L, 0, 0, 0);
-	//lua_getglobal(L, "set_uid");
-	//lua_pushnumber(L, i);
-	//lua_pcall(L, 1, 0, 0);
-	//lua_pop(L, 1);
+	lua_State *L = g_clients[QUEST_NPC_NUMBER].L = luaL_newstate();
+	luaL_openlibs(L);
+	luaL_loadfile(L, "NPC.LUA");
+	lua_pcall(L, 0, 0, 0);
+	lua_getglobal(L, "set_uid");
+	lua_pushnumber(L, QUEST_NPC_NUMBER);
+	lua_pcall(L, 1, 0, 0);
+	lua_pop(L, 1);
 
-	//lua_register(L, "API_send_message", API_SendMessage);
-	//lua_register(L, "API_get_x", API_get_x);
-	//lua_register(L, "API_get_y", API_get_y);
+	lua_register(L, "API_send_message", API_SendMessage);
+	lua_register(L, "API_get_x", API_get_x);
+	lua_register(L, "API_get_y", API_get_y);
 
 }
 
