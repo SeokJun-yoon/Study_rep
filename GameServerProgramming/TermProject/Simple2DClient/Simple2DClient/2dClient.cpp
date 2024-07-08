@@ -28,8 +28,6 @@ int g_myid;
 sf::RenderWindow* g_window;
 sf::Font g_font;
 
-
-
 //char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 
 class OBJECT {
@@ -202,8 +200,13 @@ void ProcessPacket(char* ptr)
 		else {
 			if (id < NPC_ID_START)
 				npcs[id] = OBJECT{ *piece, 0, 0, 64, 64 };
-			else
+			else if (id > NPC_ID_START && id <NPC_ID_START + NPC2_ID_START)
+				npcs[id] = OBJECT{ *monster1, 0, 0, 64, 64 };
+			else if (id > NPC_ID_START + NPC2_ID_START && id < NPC_ID_START + NPC2_ID_START + NPC3_ID_START)
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
+			else
+				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
+
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);
 			npcs[id].move(my_packet->x, my_packet->y);

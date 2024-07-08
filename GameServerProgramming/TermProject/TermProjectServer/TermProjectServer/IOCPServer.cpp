@@ -24,7 +24,7 @@ using namespace chrono;
 #include "protocol.h"
 constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
 constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
-constexpr auto MAX_USER = 10000;	// 최대 접속 유저 수
+constexpr auto MAX_USER = 2000;	// 최대 접속 유저 수
 
 
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE};
@@ -139,7 +139,7 @@ void send_enter_packet(int user_id, int o_id)
 	p.x = g_clients[o_id].x;
 	p.y = g_clients[o_id].y;
 	strcpy_s(p.name, g_clients[o_id].m_name);
-	p.o_type = O_HUMAN;
+	p.o_type = O_PLAYER;
 
 	g_clients[user_id].m_cl.lock();
 	g_clients[user_id].m_view_list.insert(o_id);
@@ -531,8 +531,8 @@ void worker_thread()
 				nc.m_recv_over.wsabuf.buf = nc.m_recv_over.io_buf;
 				nc.m_recv_over.wsabuf.len = MAX_BUF_SIZE;
 				nc.m_s = c_socket;
-				nc.x = rand() % WORLD_WIDTH;
-				nc.y = rand() % WORLD_HEIGHT;
+				nc.x = ((rand() % WORLD_WIDTH) % 10) + 10;
+				nc.y = ((rand() % WORLD_HEIGHT) % 10) + 10;
 				nc.m_view_list.clear();
 				DWORD flags = 0;
 				WSARecv(c_socket, &nc.m_recv_over.wsabuf, 1, NULL, &flags, &nc.m_recv_over.over, NULL);

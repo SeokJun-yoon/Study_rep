@@ -5,8 +5,10 @@
 #define WORLD_WIDTH		800	// 맵 너비
 #define WORLD_HEIGHT	800	// 맵 높이
 
-#define NPC_ID_START	20000	// NPC ID 구분
-#define NUM_NPC			2000	// NPC 수
+#define NPC_ID_START	3000	// NPC ID 구분
+#define NPC2_ID_START	3000	//
+#define NPC3_ID_START	3000	//
+#define NUM_NPC			9000	// NPC 수
 
 constexpr int MAX_ID_LEN = 10;	// 최대 ID 길이
 constexpr int MAX_STR_LEN = 100;  // string 최대 길이
