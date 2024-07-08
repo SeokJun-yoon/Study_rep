@@ -3,7 +3,6 @@
 #include <windows.h>
 #include <iostream>
 #include <string>
-#include <random>
 #include <unordered_map>
 #include <chrono>
 using namespace std;
@@ -30,10 +29,8 @@ sf::RenderWindow* g_window;
 sf::Font g_font;
 
 
-default_random_engine dre{ 9999 };
-uniform_int_distribution <> uid{ 0,5 };
 
-char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
+//char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 
 class OBJECT {
 private:

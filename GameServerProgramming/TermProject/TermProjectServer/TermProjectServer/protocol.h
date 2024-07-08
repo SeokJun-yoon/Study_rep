@@ -12,6 +12,9 @@ constexpr int MAX_ID_LEN = 10;	// 최대 ID 길이
 constexpr int MAX_STR_LEN = 100;  // string 최대 길이
 constexpr int VIEW_RADIUS = 8; // 시야 범위
 
+constexpr int ON_TILE_MAP = 0;
+constexpr int NO_TILE_MAP = 1;
+
 #define S2C_LOGIN_OK		1
 #define S2C_MOVE			2
 #define S2C_ENTER			3
@@ -23,6 +26,11 @@ constexpr int VIEW_RADIUS = 8; // 시야 범위
 #define C2S_LOGIN	1
 #define C2S_MOVE	2
 
+char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
+#include <random>
+
+default_random_engine dre{ 9999 };
+uniform_int_distribution <> uid{ 0,5 };
 
 #pragma pack(push ,1)
 

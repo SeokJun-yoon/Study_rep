@@ -201,10 +201,34 @@ void do_move(int user_id, int direction)
 	int x = u.x;
 	int y = u.y;
 	switch (direction) {
-	case D_UP: if (y > 0) y--; break;
-	case D_DOWN: if (y < (WORLD_HEIGHT - 1)) y++; break;
-	case D_LEFT: if (x > 0) x--; break;
-	case D_RIGHT: if (x < (WORLD_WIDTH - 1)) x++; break;
+	case D_UP: 
+		//if (y > 0) y--; break;
+		if (g_Map[x][y - 1] == eBLANK)
+		{
+			if (y > 0) y--; break;
+		}
+		break;
+	case D_DOWN: 
+		//if (y < (WORLD_HEIGHT - 1)) y++; break;
+		if (g_Map[x][y + 1] == eBLANK)
+		{
+			if (y < (WORLD_HEIGHT - 1)) y++; break;
+		}
+		break;
+	case D_LEFT: 
+		//if (x > 0) x--; break;
+		if (g_Map[x - 1][y] == eBLANK)
+		{
+			if (x > 0) x--; break;
+		}
+		break;
+	case D_RIGHT: 
+		//if (x < (WORLD_WIDTH - 1)) x++; break;
+		if (g_Map[x + 1][y] == eBLANK)
+		{
+			if (x < (WORLD_WIDTH - 1)) x++; break;
+		}
+		break;
 	default:
 		cout << "Unknown Direction from Client move packet!\n";
 		DebugBreak();
@@ -333,7 +357,6 @@ void random_move_npc(int id)
 	}
 }
 
-
 void enter_game(int user_id, char name[])
 {
 	g_clients[user_id].m_cl.lock();
@@ -386,14 +409,6 @@ void process_packet(int user_id, char* buf)
 	}
 }
 
-void initialize_clients()
-{
-	for (int i = 0; i < MAX_USER; ++i) {
-		g_clients[i].m_id = i;
-
-		g_clients[i].m_status = ST_FREE;
-	}
-}
 
 void disconnect(int user_id)
 {
@@ -569,6 +584,26 @@ int API_get_y(lua_State* L)
 	return 1;
 }
 
+void initialize_clients()
+{
+	for (int i = 0; i < MAX_USER; ++i) {
+		g_clients[i].m_id = i;
+
+		g_clients[i].m_status = ST_FREE;
+	}
+}
+
+void init_map()
+{
+	for (int i = 0; i < WORLD_WIDTH; ++i) {
+		for (int j = 0; j < WORLD_HEIGHT; ++j) {
+			if (uid(dre) == 0)
+				g_Map[i][j] = eBLOCKED;
+			else
+				g_Map[i][j] = eBLANK;
+		}
+	}
+}
 
 void init_npc()
 {
@@ -583,7 +618,6 @@ void init_npc()
 		////g_clients[i].m_last_move_time = high_resolution_clock::now();
 		////add_timer(i, OP_RANDOM_MOVE, 1000);府
 
-		// lua包访 老窜 林籍贸府
 		lua_State *L = g_clients[i].L = luaL_newstate();
 		luaL_openlibs(L);
 		luaL_loadfile(L, "NPC.LUA");
@@ -673,7 +707,9 @@ int main()
 
 	g_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
 
+	init_map();
 	initialize_clients();
+
 
 	CreateIoCompletionPort(reinterpret_cast<HANDLE>(l_socket), g_iocp, 999, 0);
 	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
