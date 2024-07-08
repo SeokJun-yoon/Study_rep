@@ -85,6 +85,7 @@ public:
 		m_x = x;
 		m_y = y;
 	}
+
 	void draw() {
 		if (false == m_showing) return;
 		float rx = (m_x - g_left_x) * 65.0f + 8;

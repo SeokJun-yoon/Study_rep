@@ -319,10 +319,34 @@ void random_move_npc(int id)
 	int y = g_clients[id].y;
 	switch (rand() % 4)
 	{
-	case 0: if (x < (WORLD_WIDTH - 1)) x++; break;
-	case 1: if (x > 0) x--; break;
-	case 2: if (y < (WORLD_HEIGHT - 1)) y++; break;
-	case 3: if (y > 0) y--; break;
+	case D_UP:
+		//if (y > 0) y--; break;
+		if (g_Map[x][y - 1] == eBLANK)
+		{
+			if (y > 0) y--; break;
+		}
+		break;
+	case D_DOWN:
+		//if (y < (WORLD_HEIGHT - 1)) y++; break;
+		if (g_Map[x][y + 1] == eBLANK)
+		{
+			if (y < (WORLD_HEIGHT - 1)) y++; break;
+		}
+		break;
+	case D_LEFT:
+		//if (x > 0) x--; break;
+		if (g_Map[x - 1][y] == eBLANK)
+		{
+			if (x > 0) x--; break;
+		}
+		break;
+	case D_RIGHT:
+		//if (x < (WORLD_WIDTH - 1)) x++; break;
+		if (g_Map[x + 1][y] == eBLANK)
+		{
+			if (x < (WORLD_WIDTH - 1)) x++; break;
+		}
+		break;
 	}
 	g_clients[id].x = x;
 	g_clients[id].y = y;
