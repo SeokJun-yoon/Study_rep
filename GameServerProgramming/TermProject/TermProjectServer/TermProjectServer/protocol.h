@@ -5,10 +5,17 @@
 #define WORLD_WIDTH		800	// 맵 너비
 #define WORLD_HEIGHT	800	// 맵 높이
 
-#define NPC_ID_START	3000	// NPC ID 구분
-#define NPC2_ID_START	3000	//
-#define NPC3_ID_START	3000	//
+#define MAX_USER		3000	// 총 유저 수
 #define NUM_NPC			9000	// NPC 수
+#define NUMBER_OF_NPC_TYPES	3	// NPC 종류의 수
+#define NUM_NPC1		NUM_NPC / NUMBER_OF_NPC_TYPES
+#define NUM_NPC2		NUM_NPC / NUMBER_OF_NPC_TYPES
+#define NUM_NPC3		NUM_NPC / NUMBER_OF_NPC_TYPES
+
+#define NPC_ID_START	NUM_NPC / NUMBER_OF_NPC_TYPES	// NPC ID 구분
+#define NPC2_ID_START	NPC_ID_START + NUM_NPC1	//
+#define NPC3_ID_START	NPC2_ID_START + NUM_NPC2	//
+#define QUEST_NPC_NUMBER	NPC_ID_START + NPC2_ID_START + NPC3_ID_START + (NUM_NPC / 3)
 
 constexpr int MAX_ID_LEN = 10;	// 최대 ID 길이
 constexpr int MAX_STR_LEN = 100;  // string 최대 길이

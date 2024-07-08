@@ -24,7 +24,7 @@ using namespace chrono;
 #include "protocol.h"
 constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
 constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
-constexpr auto MAX_USER = 2000;	// 최대 접속 유저 수
+//constexpr auto MAX_USER = 3000;	// 최대 접속 유저 수
 
 
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE};
@@ -635,12 +635,29 @@ void init_npc()
 	{
 		g_clients[i].m_s = 0;
 		g_clients[i].m_id = i;
-		sprintf_s(g_clients[i].m_name, "NPC%d", i);
+
 		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].x = rand() % WORLD_WIDTH;
 		g_clients[i].y = rand() % WORLD_HEIGHT;
+
+		if (i >= NPC_ID_START && i < NPC2_ID_START)
+		{
+			sprintf_s(g_clients[i].m_name, "MONSTER 1");
+		}
+
+		else if (i >= NPC2_ID_START && i < NPC3_ID_START)
+		{
+			sprintf_s(g_clients[i].m_name, "MONSTER 2");
+
+		}
+
+		else
+		{
+			sprintf_s(g_clients[i].m_name, "MONSTER 3");
+		}
+
 		////g_clients[i].m_last_move_time = high_resolution_clock::now();
-		////add_timer(i, OP_RANDOM_MOVE, 1000);리
+		////add_timer(i, OP_RANDOM_MOVE, 1000);
 
 		lua_State *L = g_clients[i].L = luaL_newstate();
 		luaL_openlibs(L);
@@ -654,8 +671,30 @@ void init_npc()
 		lua_register(L, "API_send_message", API_SendMessage);
 		lua_register(L, "API_get_x", API_get_x);
 		lua_register(L, "API_get_y", API_get_y);
-
 	}
+
+
+	//// Quest NPC
+	//g_clients[QUEST_NPC_NUMBER].m_s = 0;
+	//g_clients[QUEST_NPC_NUMBER].m_id = QUEST_NPC_NUMBER;
+	//sprintf_s(g_clients[QUEST_NPC_NUMBER].m_name, "QUEST_NPC");
+	//g_clients[QUEST_NPC_NUMBER].m_status = ST_SLEEP;
+	//g_clients[QUEST_NPC_NUMBER].x = 15;
+	//g_clients[QUEST_NPC_NUMBER].y = 15;
+
+	//lua_State *L = g_clients[i].L = luaL_newstate();
+	//luaL_openlibs(L);
+	//luaL_loadfile(L, "NPC.LUA");
+	//lua_pcall(L, 0, 0, 0);
+	//lua_getglobal(L, "set_uid");
+	//lua_pushnumber(L, i);
+	//lua_pcall(L, 1, 0, 0);
+	//lua_pop(L, 1);
+
+	//lua_register(L, "API_send_message", API_SendMessage);
+	//lua_register(L, "API_get_x", API_get_x);
+	//lua_register(L, "API_get_y", API_get_y);
+
 }
 
 void do_ai()

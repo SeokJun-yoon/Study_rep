@@ -19,7 +19,7 @@ constexpr auto TILE_WIDTH = 65;
 constexpr auto WINDOW_WIDTH = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;   // size of window
 constexpr auto WINDOW_HEIGHT = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;
 constexpr auto BUF_SIZE = 200;
-constexpr auto MAX_USER = NPC_ID_START;
+//constexpr auto MAX_USER = NPC_ID_START;
 
 int g_left_x;
 int g_top_y;
@@ -118,6 +118,7 @@ OBJECT block_tile;
 OBJECT monster_1;
 OBJECT monster_2;
 OBJECT boss_monster;
+OBJECT quest_npc;
 
 sf::Texture* piece;
 sf::Texture* maptile;
@@ -125,6 +126,7 @@ sf::Texture* blocktile;
 sf::Texture* monster1;
 sf::Texture* monster2;
 sf::Texture* bossmonster;
+sf::Texture* questnpc;
 
 void client_initialize()
 {
@@ -134,6 +136,7 @@ void client_initialize()
 	monster1 = new sf::Texture;
 	monster2 = new sf::Texture;
 	bossmonster = new sf::Texture;
+	questnpc = new sf::Texture;
 	if (false == g_font.loadFromFile("cour.ttf")) {
 		cout << "Font Loading Error!\n";
 		while (true);
@@ -144,6 +147,7 @@ void client_initialize()
 	monster1->loadFromFile("monster1.png");
 	monster2->loadFromFile("monster2.png");
 	bossmonster->loadFromFile("boss.png");
+	questnpc->loadFromFile("questnpc.png");
 	map_tile = OBJECT{ *maptile, 0, 0, TILE_WIDTH, TILE_WIDTH };
 	block_tile = OBJECT{ *blocktile, 0, 0, TILE_WIDTH, TILE_WIDTH };
 	
@@ -168,6 +172,7 @@ void client_finish()
 	delete monster1;
 	delete monster2;
 	delete bossmonster;
+	delete questnpc;
 }
 
 void ProcessPacket(char* ptr)
@@ -200,13 +205,14 @@ void ProcessPacket(char* ptr)
 		else {
 			if (id < NPC_ID_START)
 				npcs[id] = OBJECT{ *piece, 0, 0, 64, 64 };
-			else if (id > NPC_ID_START && id <NPC_ID_START + NPC2_ID_START)
+			else if (id >= NPC_ID_START && id < NPC2_ID_START)
 				npcs[id] = OBJECT{ *monster1, 0, 0, 64, 64 };
-			else if (id > NPC_ID_START + NPC2_ID_START && id < NPC_ID_START + NPC2_ID_START + NPC3_ID_START)
+			else if (id >= NPC2_ID_START && id < NPC3_ID_START)
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
-			else
+			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER)
 				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
-
+			else if (id == QUEST_NPC_NUMBER)
+				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 };
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);
 			npcs[id].move(my_packet->x, my_packet->y);
