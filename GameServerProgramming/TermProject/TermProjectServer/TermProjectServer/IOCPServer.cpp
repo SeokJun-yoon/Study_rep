@@ -4,6 +4,7 @@
 #pragma comment (lib, "WS2_32.lib")
 #pragma comment (lib, "mswsock.lib")
 #pragma comment (lib, "lua53.lib")
+#include "protocol.h"
 
 extern "C" {
 #include "lua.h"
@@ -12,20 +13,25 @@ extern "C" {
 }
 
 #include <vector>
-#include <thread>
-#include <mutex>
 #include <unordered_set>
+#include <thread>
 #include <atomic>
+#include <math.h>
+#include <mutex>
 #include <chrono>
 #include <queue>
+#include <string>
+
 using namespace std;
 using namespace chrono;
 
-#include "protocol.h"
 constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
 constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
 //constexpr auto MAX_USER = 3000;	// 최대 접속 유저 수
 
+#define NEED_LEVEL1_EXP 50
+#define NEED_LEVEL2_EXP 80
+#define NEED_LEVEL3_EXP 100
 
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE};
 
@@ -46,6 +52,10 @@ mutex timer_lock;
 
 enum C_STATUS { ST_FREE, ST_ALLOC, ST_ACTIVE, ST_SLEEP };
 
+// DB연동 시 주석해제하고 사용
+//void Load_Database();
+//void Update_Database(int id, int x, int y, int hp, int level, int exp);
+
 struct EXOVER {
 	WSAOVERLAPPED	over;
 	ENUMOP			op;
@@ -63,15 +73,35 @@ struct CLIENT {
 	int			m_id;
 	EXOVER		m_recv_over;
 	int			m_prev_size;
+
 	char		m_packet_buf[MAX_PACKET_SIZE];
 	atomic <C_STATUS> m_status;
-
-	short x, y;
 	char m_name[MAX_ID_LEN + 1];
+	short x, y;
+
+	// Player
+	int DBKey;
+	int m_hp=100;
+	int m_maxhp;
+	int m_att;
+	int m_exp;
+	int m_maxexp;
+	int m_level = 1;
+	int m_attackrange = 1;
+
+	// NPC
+	int NPC_TYPE;
+	bool is_active;
+	bool is_alive;
+
+	
+
 	unsigned m_move_time;
 	high_resolution_clock::time_point m_last_move_time;
 
 	unordered_set <int> m_view_list;
+
+	// LUA
 	lua_State* L;
 	mutex lua_l;
 };
@@ -79,6 +109,7 @@ struct CLIENT {
 CLIENT g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
+atomic_int UserCount=0;
 
 void add_timer(int obj_id, ENUMOP op_type, int duration)
 {
@@ -118,14 +149,28 @@ void send_packet(int user_id, void* p)
 void send_login_ok_packet(int user_id)
 {
 	sc_packet_login_ok p;
-	p.exp = 0;
-	p.hp = 0;
+	p.exp = g_clients[user_id].m_exp;
+	p.hp = g_clients[user_id].m_exp;
+	p.hp = g_clients[user_id].m_maxhp;
 	p.id = user_id;
-	p.level = 0;
+	p.level = g_clients[user_id].m_level;
 	p.size = sizeof(p);
 	p.type = S2C_LOGIN_OK;
 	p.x = g_clients[user_id].x;
 	p.y = g_clients[user_id].y;
+
+	send_packet(user_id, &p);
+}
+
+void send_login_fail(int user_id)
+{
+	sc_packet_login_fail p;
+	p.size = sizeof(p);
+	p.type = S2C_LOGIN_FAIL;
+
+	char error[MAX_STR_LEN];
+	sprintf_s(error, "Login Error - Invalid ID !");
+	strcpy_s(p.message, error);
 
 	send_packet(user_id, &p);
 }
@@ -172,16 +217,22 @@ void send_move_packet(int user_id, int mover)
 	p.y = g_clients[mover].y;
 	p.move_time = g_clients[mover].m_move_time;
 
+	g_clients[mover].m_cl.lock();
+	//strcpy_s(p.name, g_clients[mover].name);
+	g_clients[mover].m_cl.unlock();
+	//p.o_type = 0;
+
 	send_packet(user_id, &p);
 }
 
-void send_chat_packet(int user_id, int chatter, char mess[])
+void send_chat_packet(int user_id, int chatter, char* mess, int mess_type)
 {
 	sc_packet_chat p;
 	p.id = chatter;
 	p.size = sizeof(p);
 	p.type = S2C_CHAT;
 	strcpy_s(p.mess, mess);
+	p.mess_type = mess_type;
 
 	send_packet(user_id, &p);
 }
@@ -192,6 +243,65 @@ void activate_npc(int id)
 	C_STATUS old_state = ST_SLEEP;
 	if (true == atomic_compare_exchange_strong(&g_clients[id].m_status, &old_state, ST_ACTIVE))
 		add_timer(id, OP_RANDOM_MOVE, 1000);
+}
+
+void is_player_level_up(int user_id)
+{
+	if (g_clients[user_id].m_level == 1)
+	{
+		if (g_clients[user_id].m_exp >= NEED_LEVEL1_EXP)
+		{
+			g_clients[user_id].m_level = 2;
+			g_clients[user_id].m_exp = 0;
+			g_clients[user_id].m_maxexp = 80;
+			g_clients[user_id].m_attackrange = 2;
+			g_clients[user_id].m_hp = 80;
+			g_clients[user_id].m_maxhp = 80;
+			g_clients[user_id].m_att = 8;
+		}
+	}
+
+	if (g_clients[user_id].m_level == 2)
+	{
+		if (g_clients[user_id].m_exp >= NEED_LEVEL2_EXP)
+		{
+			g_clients[user_id].m_level = 3;
+			g_clients[user_id].m_exp = 0;
+			g_clients[user_id].m_maxexp = 100;
+			g_clients[user_id].m_attackrange = 3;
+			g_clients[user_id].m_hp = 100;
+			g_clients[user_id].m_maxhp = 100;
+			g_clients[user_id].m_att = 10;
+		}
+	}
+
+
+}
+
+void is_npc_die(int user_id, int npc_id)
+{
+	if (g_clients[npc_id].m_hp < 0 && g_clients[npc_id].is_active == true)
+	{
+		if (g_clients[npc_id].is_alive == true)
+		{
+			g_clients[user_id].m_exp += (g_clients[npc_id].m_level * 10);
+		}
+		g_clients[npc_id].is_alive = false;
+		g_clients[npc_id].is_active = false;
+
+		is_player_level_up(user_id);
+
+		char mess[100];
+		sprintf_s(mess, "ID : %s && EXP : %d && LEVEL : %d", g_clients[user_id].m_name, g_clients[user_id].m_exp, g_clients[user_id].m_level);
+
+		for (int i = 0; i < UserCount; ++i)
+		{
+			if (i == user_id)
+			{
+				send_chat_packet(i, user_id, mess, 0);
+			}
+		}
+	}
 }
 
 
@@ -412,6 +522,38 @@ void enter_game(int user_id, char name[])
 	}
 }
 
+void do_attack(int id)
+{
+	g_clients[id].m_cl.lock();
+	auto vl = g_clients[id].m_view_list;
+	g_clients[id].m_cl.unlock();
+
+	char mess[100];
+
+	for (auto npc : vl) {
+
+		if ((g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y - 1) ||
+			(g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y + 1) ||
+			(g_clients[npc].x == g_clients[id].x - 1 && g_clients[npc].y == g_clients[id].y) ||
+			(g_clients[npc].x == g_clients[id].x + 1 && g_clients[npc].y == g_clients[id].y))		// 시야 안의 npc 중 1칸 이내 범위 판정
+		{
+			g_clients[npc].m_hp -= g_clients[id].m_att;
+
+			is_npc_die(id, npc);
+
+			char mess[100];
+			sprintf_s(mess, "%s -> attack -> %s (-A%d).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_level * 2);
+
+			for (int i = 0; i < UserCount; ++i)
+			{
+				send_chat_packet(i, id, mess, 1);
+			}
+		}
+	}
+
+}
+
+
 void process_packet(int user_id, char* buf)
 {
 	switch (buf[1]) {
@@ -426,6 +568,12 @@ void process_packet(int user_id, char* buf)
 		do_move(user_id, packet->direction);
 	}
 				   break;
+
+	case C2S_ATTACK: {
+		cs_packet_attack* packet = reinterpret_cast<cs_packet_attack*>(buf);
+		do_attack(user_id);
+		break;
+	}
 	default:
 		cout << "Unknown Packet Type Error!\n";
 		DebugBreak();
@@ -562,11 +710,18 @@ void worker_thread()
 		case OP_PLAYER_MOVE: {
 			g_clients[user_id].lua_l.lock();
 			lua_State *L = g_clients[user_id].L;
-			lua_getglobal(L, "event_player_move");
-			lua_pushnumber(L, exover->p_id);
+			if (user_id == QUEST_NPC_NUMBER)
+			{
+				lua_getglobal(L, "quest_accept");
+				lua_pushnumber(L, exover->p_id);
+			}
+			else
+			{
+				lua_getglobal(L, "event_player_move");
+				lua_pushnumber(L, exover->p_id);
+			}
 			int error = lua_pcall(L, 1, 0, 0);
 			if (error) cout << lua_tostring(L, -1);
-			//lua_pop(L, 1);
 			g_clients[user_id].lua_l.unlock();
 			delete exover;
 		}
@@ -585,7 +740,7 @@ int API_SendMessage(lua_State* L)
 	int user_id = (int)lua_tointeger(L, -2);
 	char *mess = (char*)lua_tostring(L, -1);
 
-	send_chat_packet(user_id, my_id, mess);
+	send_chat_packet(user_id, my_id, mess, 0);
 	lua_pop(L, 3);
 	return 0;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <random>
 
 #define SERVER_PORT		9000
 
@@ -42,12 +43,13 @@ constexpr unsigned char D_RIGHT = 3;
 #define C2S_LOGIN	1
 #define C2S_MOVE	2
 #define C2S_ATTACK  3
+#define C2S_CHAT	4
+#define C2S_LOGOUT	5
 
 char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
-#include <random>
 
-default_random_engine dre{ 9999 };
-uniform_int_distribution <> uid{ 0,5 };
+std::default_random_engine dre{ 9999 };
+std::uniform_int_distribution <> uid{ 0,5 };
 
 #pragma pack(push ,1)
 
@@ -65,6 +67,13 @@ struct sc_packet_login_ok {
 	short hp;
 	short level;
 	int	exp;
+};
+
+struct sc_packet_login_fail {
+	char  size;
+	char  type;
+	int	  id;
+	char  message[MAX_STR_LEN];
 };
 
 struct sc_packet_move {
@@ -95,6 +104,7 @@ struct sc_packet_chat {
 	char type;
 	int	id;
 	char mess[MAX_STR_LEN];
+	int mess_type;
 };
 
 struct cs_packet_login {
@@ -111,6 +121,17 @@ struct cs_packet_move {
 };
 
 struct cs_packet_attack {
+	char	size;
+	char	type;
+};
+
+struct cs_packet_chat {
+	char	size;
+	char	type;
+	char	message[MAX_STR_LEN];
+};
+
+struct cs_packet_logout {
 	char	size;
 	char	type;
 };

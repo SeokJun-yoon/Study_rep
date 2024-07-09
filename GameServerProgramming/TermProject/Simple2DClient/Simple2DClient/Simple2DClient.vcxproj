@@ -126,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <Font Include="cour.ttf" />
+    <Font Include="Galmuri7.ttf" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\TermProjectServer\TermProjectServer\protocol.h" />

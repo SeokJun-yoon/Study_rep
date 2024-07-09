@@ -28,15 +28,28 @@ int g_myid;
 sf::RenderWindow* g_window;
 sf::Font g_font;
 
+
+bool login_ok = false;
 // Flags
 bool is_attack = false;
+
+sf::Text m_worldText[3];
+high_resolution_clock::time_point m_worldtime_out[3];
+
+sf::Text m_responText;
+high_resolution_clock::time_point m_time_out_responText;
 
 class OBJECT {
 private:
 	bool m_showing;
 	sf::Sprite m_sprite;
 	sf::Sprite m_sprite_attack;
-	//sf::Sprite m_sprite_damage;
+	sf::Sprite m_sprite_damage;
+
+	sf::RectangleShape Hp_player;
+	sf::RectangleShape Hp_monster;
+	sf::ConvexShape Level_UI;
+	sf::CircleShape exp_UI;
 
 	char m_mess[MAX_STR_LEN];	// for message
 	high_resolution_clock::time_point m_time_out;
@@ -62,10 +75,22 @@ public:
 		m_time_out = high_resolution_clock::now();
 	}
 
+	void set_move(sf::Texture& t, int x, int y, int x2, int y2)
+	{
+		m_sprite.setTexture(t);
+		m_sprite.setTextureRect(sf::IntRect(x, y, x2, y2));
+	}
+
 	void set_attack(sf::Texture& t, int x, int y, int x2, int y2)
 	{
 		m_sprite_attack.setTexture(t);
 		m_sprite_attack.setTextureRect(sf::IntRect(x, y, x2, y2));
+	}
+
+	void set_damage(sf::Texture& t, int x, int y, int x2, int y2)
+	{
+		m_sprite_damage.setTexture(t);
+		m_sprite_damage.setTextureRect(sf::IntRect(x, y, x2, y2));
 	}
 
 	void show()
@@ -111,19 +136,54 @@ public:
 			m_sprite_attack.setPosition(rx - TILE_WIDTH, ry);
 			g_window->draw(m_sprite_attack);
 
-			m_sprite_attack.setPosition(rx, ry +TILE_WIDTH);
+			m_sprite_attack.setPosition(rx, ry + TILE_WIDTH);
 			g_window->draw(m_sprite_attack);
 
 			m_sprite_attack.setPosition(rx, ry - TILE_WIDTH);
 			g_window->draw(m_sprite_attack);
 		}
+
+		Hp_player.setPosition(sf::Vector2f(rx, ry - 50));
+		Hp_player.setOutlineThickness(3.0f);
+		Hp_player.setOutlineColor(sf::Color::Black);
+		Hp_player.setFillColor(sf::Color(255, 0, 0, 100));
+		Hp_player.setSize(sf::Vector2f(100, 30));
+		g_window->draw(Hp_player);
+
+		Hp_monster.setPosition(sf::Vector2f(rx, ry - 50));
+		Hp_monster.setFillColor(sf::Color(0, 255, 0, 100));
+		Hp_monster.setSize(sf::Vector2f(hp, 30));
+		g_window->draw(Hp_monster);
 	}
 	void set_name(char str[]) {
+		m_name.setFont(g_font);
+		m_name.setString(str);
+		m_name.setFillColor(sf::Color(255, 255, 255));
+		m_name.setStyle(sf::Text::Bold);
+		m_name.setCharacterSize(25);
+	}
+
+	void set_hp(char str[]) {
+		m_name.setFont(g_font);
+		m_name.setString(str);
+		m_name.setFillColor(sf::Color(255, 255, 255));
+		m_name.setStyle(sf::Text::Bold);
+	}
+
+	void set_level(char str[]) {
+		m_name.setFont(g_font);
+		m_name.setString(str);
+		m_name.setFillColor(sf::Color(255, 255, 255));
+		m_name.setStyle(sf::Text::Bold);
+	}
+
+	void set_exp(char str[]) {
 		m_name.setFont(g_font);
 		m_name.setString(str);
 		m_name.setFillColor(sf::Color(255, 255, 0));
 		m_name.setStyle(sf::Text::Bold);
 	}
+
 	void add_chat(char chat[]) {
 		m_text.setFont(g_font);
 		m_text.setString(chat);
@@ -141,9 +201,10 @@ OBJECT monster_2;
 OBJECT boss_monster;
 OBJECT quest_npc;
 OBJECT attack;
+OBJECT Player;
 
 
-sf::Texture* piece;
+sf::Texture* player;
 sf::Texture* maptile;
 sf::Texture* blocktile;
 sf::Texture* monster1;
@@ -154,7 +215,7 @@ sf::Texture* attacktex;
 
 void client_initialize()
 {
-	piece = new sf::Texture;
+	player = new sf::Texture;
 	maptile = new sf::Texture;
 	blocktile = new sf::Texture;
 	monster1 = new sf::Texture;
@@ -163,11 +224,12 @@ void client_initialize()
 	questnpc = new sf::Texture;
 	attacktex = new sf::Texture;
 
-	if (false == g_font.loadFromFile("cour.ttf")) {
+	if (false == g_font.loadFromFile("Galmuri7.ttf")) {
 		cout << "Font Loading Error!\n";
 		while (true);
 	}
-	piece->loadFromFile("piece.png");
+
+	player->loadFromFile("piece.png");
 	maptile->loadFromFile("maptile.png");
 	blocktile->loadFromFile("blocktile.png");
 	monster1->loadFromFile("monster1.png");
@@ -188,15 +250,14 @@ void client_initialize()
 		}
 	}
 	
-	avatar = OBJECT{ *piece, 0, 0, 64, 64 };
-
+	avatar.set_move(*player, 0, 0, 64, 64);
 	avatar.set_attack(*attacktex, 0, 0, 64, 64);
 	avatar.move(4, 4);
 }
 
 void client_finish()
 {
-	delete piece;
+	delete player;
 	delete maptile;
 	delete blocktile;
 	delete monster1;
@@ -205,6 +266,10 @@ void client_finish()
 	delete questnpc;
 	delete attacktex;
 }
+
+sf::Text userdata_text;
+sf::Text messdata_text;
+sf::Text messdata2_text;
 
 void ProcessPacket(char* ptr)
 {
@@ -215,10 +280,31 @@ void ProcessPacket(char* ptr)
 	{
 		sc_packet_login_ok* my_packet = reinterpret_cast<sc_packet_login_ok*>(ptr);
 		g_myid = my_packet->id;
+
 		avatar.move(my_packet->x, my_packet->y);
+
 		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
+		avatar.id = my_packet->id;
+		avatar.hp = my_packet->hp;
+		avatar.exp = my_packet->exp;
+		avatar.level = my_packet->level;
+
+		char buf[100];
+		userdata_text.setFont(g_font);
+		sprintf_s(buf, "[ ID : %dP ] [ EXP : %d / %d ] [ Level : %d ]", avatar.id, avatar.exp, (int)(100 * pow(2, (avatar.level - 1))), avatar.level);
+
+		userdata_text.setString(buf);
+		userdata_text.setPosition(180, 0);
+		userdata_text.setCharacterSize(45);
+		sf::Color color(255, 255, 255);
+		userdata_text.setFillColor(color);
+		userdata_text.setOutlineColor(sf::Color::Blue);
+		userdata_text.setStyle(sf::Text::Underlined);
+
 		avatar.show();
+
+		login_ok = true;
 	}
 	break;
 
@@ -229,21 +315,34 @@ void ProcessPacket(char* ptr)
 
 		if (id == g_myid) {
 			avatar.move(my_packet->x, my_packet->y);
-			//g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
-			//g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 			avatar.show();
 		}
 		else {
-			if (id < NPC_ID_START)
-				npcs[id] = OBJECT{ *piece, 0, 0, 64, 64 };
-			else if (id >= NPC_ID_START && id < NPC2_ID_START)
+			if (id < NPC_ID_START)	// id값이 플레이어 일 경우
+			{
+				npcs[id] = OBJECT{ *player, 0, 0, 64, 64 };
+				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+			}
+			else if (id >= NPC_ID_START && id < NPC2_ID_START) // id값이 monster1일 경우
+			{
 				npcs[id] = OBJECT{ *monster1, 0, 0, 64, 64 };
-			else if (id >= NPC2_ID_START && id < NPC3_ID_START)
+				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+			}
+			else if (id >= NPC2_ID_START && id < NPC3_ID_START) // id값이 monster2일 경우
+			{
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
-			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER)
+				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+			}
+			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER) // id값이 monster3일 경우
+			{
 				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
-			else
-				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 };
+				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+			}
+			else // id값이 questnpc일 경우
+			{
+				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 }; 
+				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+			}
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);
 			npcs[id].move(my_packet->x, my_packet->y);
@@ -277,20 +376,77 @@ void ProcessPacket(char* ptr)
 		}
 		else {
 			if (0 != npcs.count(other_id))
+			{
 				npcs[other_id].hide();
+				npcs[other_id].hp = 0;
+			}
 		}
 	}
 	break;
+
 	case S2C_CHAT:
 	{
 		sc_packet_chat *my_packet = reinterpret_cast<sc_packet_chat*>(ptr);
-		int o_id = my_packet->id;
-		if (0!=npcs.count(o_id))
+		int other_id = my_packet->id;
+		int mess_type = my_packet->mess_type;
+		char buf[100];
+		messdata_text.setString(buf);
+		messdata_text.setPosition(20, 0);
+		messdata_text.setCharacterSize(40);
+		sf::Color color(0, 0, 0);
+		messdata_text.setFillColor(color);
+		messdata_text.setOutlineColor(sf::Color::Blue);
+		messdata_text.setStyle(sf::Text::Underlined);
+
+		if (mess_type == 0)	// exp, level, id 등의 player 정보 메시지
 		{
-			npcs[o_id].add_chat(my_packet->mess);
+			if (0 != npcs.count(other_id))
+			{
+				npcs[other_id].add_chat(my_packet->mess);
+			}
+			
+			char buf[100];
+
+			sprintf_s(buf, my_packet->mess);
+			messdata_text.setFont(g_font);
+			messdata_text.setString(buf);
+			messdata_text.setPosition(20, 0);
+			messdata_text.setCharacterSize(40);
+			sf::Color color(0, 0, 0);
+			messdata_text.setFillColor(color);
+			messdata_text.setOutlineColor(sf::Color::Blue);
+			messdata_text.setStyle(sf::Text::Underlined);
+
+		}
+		
+		else if (mess_type == 1)
+		{
+			npcs[other_id].add_chat(my_packet->mess);
+			char buf[100];
+
+			messdata2_text.setFont(g_font);
+			messdata2_text.setString(buf);
+			messdata2_text.setPosition(20, 0);
+			messdata2_text.setCharacterSize(40);
+			sf::Color color(0, 0, 0);
+			messdata2_text.setFillColor(color);
+			messdata2_text.setOutlineColor(sf::Color::Blue);
+			messdata2_text.setStyle(sf::Text::Underlined);
 		}
 	}
 	break;
+
+	case S2C_LOGIN_FAIL:
+	{
+		sc_packet_login_fail* my_packet = reinterpret_cast<sc_packet_login_fail*>(ptr);
+		int id = my_packet->id;
+		if (id != g_myid) {
+			cout << "Login Failed!!\n";
+			cout << my_packet->message << endl;
+		}
+	}
+
+
 	default:
 		printf("Unknown PACKET type [%d]\n", ptr[1]);
 
@@ -343,39 +499,54 @@ void client_main()
 	if (recv_result != sf::Socket::NotReady)
 		if (received > 0) process_data(net_buf, received);
 
-	for (int i = 0; i < SCREEN_WIDTH; ++i) {
-		int tile_x = i + g_left_x;
-		if (tile_x >= WORLD_WIDTH) break;
-		if (tile_x < 0) continue;
-		for (int j = 0; j < SCREEN_HEIGHT; ++j)
-		{
-			int tile_y = j + g_top_y;
-			if (tile_y < 0) continue;
-			if (tile_y >= WORLD_HEIGHT) break;
-			// if (((tile_x + tile_y) % 2) == 0) {
-			
-			if (g_Map[tile_x][tile_y] == eBLOCKED) {
-				block_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
-				block_tile.a_draw();
-			}
-			
-			else if (g_Map[tile_x][tile_y]==eBLANK)
+	if (login_ok == true)
+	{
+		for (int i = 0; i < SCREEN_WIDTH; ++i) {
+			int tile_x = i + g_left_x;
+			if (tile_x >= WORLD_WIDTH) break;
+			if (tile_x < 0) continue;
+			for (int j = 0; j < SCREEN_HEIGHT; ++j)
 			{
-				map_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
-				map_tile.a_draw();
+				int tile_y = j + g_top_y;
+				if (tile_y < 0) continue;
+				if (tile_y >= WORLD_HEIGHT) break;
+				// if (((tile_x + tile_y) % 2) == 0) {
+
+				if (g_Map[tile_x][tile_y] == eBLOCKED) {
+					block_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
+					block_tile.a_draw();
+				}
+
+				else if (g_Map[tile_x][tile_y] == eBLANK)
+				{
+					map_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
+					map_tile.a_draw();
+				}
 			}
 		}
 	}
+	
 	avatar.draw();
-	//	for (auto &pl : players) pl.draw();
-	for (auto& npc : npcs) npc.second.draw();
-	sf::Text text;
-	text.setFont(g_font);
+
+	for (auto& npc : npcs)
+	{
+		npc.second.draw();
+		if (npc.second.hp <=  0)
+			npc.second.hide();
+		else
+			npc.second.show();
+	}
+
+	sf::Text coordinate_text;
+	coordinate_text.setFont(g_font);
 	char buf[100];
 	sprintf_s(buf, "(%d, %d)", avatar.m_x, avatar.m_y);
-	text.setString(buf);
-	g_window->draw(text);
-
+	coordinate_text.setString(buf);
+	coordinate_text.setCharacterSize(50);
+	g_window->draw(coordinate_text);
+	g_window->draw(userdata_text);
+	g_window->draw(messdata_text);
+	g_window->draw(messdata2_text);
 }
 
 void send_packet(void* packet)
@@ -402,8 +573,27 @@ void send_attack_packet()
 	send_packet(&m_packet);
 }
 
+void send_chat_packet(char* mess)
+{
+	cs_packet_chat m_packet;
+	m_packet.type = C2S_CHAT;
+	m_packet.size = sizeof(m_packet);
+	strcpy_s(m_packet.message, mess);
+	send_packet(&m_packet);
+}
+
+void send_logout_packet()
+{
+	cs_packet_logout m_packet;
+	m_packet.type = C2S_LOGOUT;
+	m_packet.size = sizeof(m_packet);
+	send_packet(&m_packet);
+}
+
 int main()
 {
+;
+
 	wcout.imbue(locale("korean"));
 	sf::Socket::Status status = g_socket.connect("127.0.0.1", SERVER_PORT);
 	g_socket.setBlocking(false);
@@ -415,14 +605,19 @@ int main()
 
 	client_initialize();
 
-	cs_packet_login l_packet;
-	l_packet.size = sizeof(l_packet);
-	l_packet.type = C2S_LOGIN;
+	// Login
+	cs_packet_login m_packet;
+	m_packet.type = C2S_LOGIN;
+	m_packet.size = sizeof(m_packet);
 	int t_id = GetCurrentProcessId();
-	sprintf_s(l_packet.name, "P%03d", t_id % 1000);
-	strcpy_s(avatar.name, l_packet.name);
-	avatar.set_name(l_packet.name);
-	send_packet(&l_packet);
+	char id[10];
+	cout << "Input ID : ";
+	cin >> id;
+	strcpy_s(m_packet.name, id);
+	sprintf_s(m_packet.name, "P%03d", t_id % 1000);
+	avatar.set_name(m_packet.name);
+	send_packet(&m_packet);
+	//
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH , WINDOW_HEIGHT), "2D CLIENT");
 	g_window = &window;

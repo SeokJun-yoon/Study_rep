@@ -17,7 +17,7 @@ Player 이동하며, NPC에게 몬스터 처치 퀘스트를 받아, Monster(NPC
     -  (플레이어 -> NPC) 공격 상/하/좌/우
 
 - 맵 구현
-지형 = 평면에 블록(장애물) 랜덤 배치
+지형 = 평면에 블록(장애물) 랜덤 배치 ( O )
 
 
 - 채팅창 구현
@@ -53,6 +53,43 @@ BossMonster 처치 시에 화면 중앙에 CLEAR ! 띄우며 종료
 중앙상단 캐릭터 NAME, HP, ATT, ATT RANGE 
 우하단 채팅창
 
+
 * Etc
 몬스터의 플레이어 추적(AI)
+
+
+* Player Stats
+Player Level 1 : 
+MaxHp = 50
+Attack = 5
+Max_Exp = 50
+Attack_Range = 1
+
+Player Level 2 : 
+MaxHp = 80
+Attack = 8
+Max_Exp = 80
+Attack_Range = 2
+
+Player Level 3 : 
+MaxHp = 100
+Attack = 10
+Max_Exp = 100
+Attack_Range = 3
+
+* Monster Stats (몬스터의 공격범위는 무조건 몬스터 상하좌우 1칸)
+Monster Level1 ( 5마리 처치시 25, 퀘스트 완료시 25 획득, -> Level2로 )
+MaxHp : 25
+Attack : 5
+Given_exp : 5
+
+Monster Level2 ( 5마리 처치시 40, 퀘스트 완료시 40 획득, -> Level3로 )
+MaxHp : 80
+Attack : 10
+Given_exp : 8
+
+Monster Level3 ( 테스트 해보고 수정해야함)
+MaxHp : 150
+Attack : 15
+Given_exp : 10
 
