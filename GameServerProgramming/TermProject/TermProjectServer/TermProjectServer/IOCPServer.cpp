@@ -33,7 +33,12 @@ constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
 #define NEED_LEVEL2_EXP 80
 #define NEED_LEVEL3_EXP 100
 
-enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE};
+enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
+enum PLAYER_MAX_DATA { LEVEL1_DATA = 50, LEVEL2_DATA = 80, LEVEL3_DATA = 100 };
+enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 5, LEVEL2_ATT = 8, LEVEL3_ATT = 10 };
+enum MONSTER_MAX_HP { MON_LEVEL1_HP = 25, MON_LEVEL2_HP = 80, MON_LEVEL3_HP = 150 };
+enum MONSTER_ATTACK_DATA { MON_LEVEL1_ATT = 5, MON_LEVEL2_ATT = 10, MON_LEVEL3_ATT = 15 };
+enum MONSTER_GIVEN_EXP { MON_LEVEL1_EXP = 5, MON_LEVEL2_EXP = 8, MON_LEVEL3_EXP = 10 };
 
 struct event_type {
 	int obj_id;
@@ -81,20 +86,21 @@ struct CLIENT {
 
 	// Player
 	int DBKey;
-	int m_hp=100;
+	int m_hp;
 	int m_maxhp;
 	int m_att;
 	int m_exp;
 	int m_maxexp;
-	int m_level = 1;
-	int m_attackrange = 1;
+	int m_level;
+	int m_attackrange;
 
 	// NPC
 	int NPC_TYPE;
+	int given_exp;
 	bool is_active;
 	bool is_alive;
 
-	
+
 
 	unsigned m_move_time;
 	high_resolution_clock::time_point m_last_move_time;
@@ -109,7 +115,7 @@ struct CLIENT {
 CLIENT g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
-atomic_int UserCount=0;
+atomic_int UserCount = 0;
 
 void add_timer(int obj_id, ENUMOP op_type, int duration)
 {
@@ -149,11 +155,12 @@ void send_packet(int user_id, void* p)
 void send_login_ok_packet(int user_id)
 {
 	sc_packet_login_ok p;
-	p.exp = g_clients[user_id].m_exp;
-	p.hp = g_clients[user_id].m_exp;
-	p.hp = g_clients[user_id].m_maxhp;
 	p.id = user_id;
 	p.level = g_clients[user_id].m_level;
+	p.exp = g_clients[user_id].m_exp;
+	p.maxexp = g_clients[user_id].m_maxexp;
+	p.hp = g_clients[user_id].m_hp;
+	p.maxhp = g_clients[user_id].m_maxhp;
 	p.size = sizeof(p);
 	p.type = S2C_LOGIN_OK;
 	p.x = g_clients[user_id].x;
@@ -183,6 +190,12 @@ void send_enter_packet(int user_id, int o_id)
 	p.type = S2C_ENTER;
 	p.x = g_clients[o_id].x;
 	p.y = g_clients[o_id].y;
+	p.level = g_clients[o_id].m_level;
+	p.hp = g_clients[o_id].m_hp;
+	p.maxhp = g_clients[o_id].m_maxhp;
+	p.exp = g_clients[o_id].m_exp;
+	p.maxexp = g_clients[o_id].m_maxexp;
+
 	strcpy_s(p.name, g_clients[o_id].m_name);
 	p.o_type = O_PLAYER;
 
@@ -311,28 +324,28 @@ void do_move(int user_id, int direction)
 	int x = u.x;
 	int y = u.y;
 	switch (direction) {
-	case D_UP: 
+	case D_UP:
 		//if (y > 0) y--; break;
 		if (g_Map[x][y - 1] == eBLANK)
 		{
 			if (y > 0) y--; break;
 		}
 		break;
-	case D_DOWN: 
+	case D_DOWN:
 		//if (y < (WORLD_HEIGHT - 1)) y++; break;
 		if (g_Map[x][y + 1] == eBLANK)
 		{
 			if (y < (WORLD_HEIGHT - 1)) y++; break;
 		}
 		break;
-	case D_LEFT: 
+	case D_LEFT:
 		//if (x > 0) x--; break;
 		if (g_Map[x - 1][y] == eBLANK)
 		{
 			if (x > 0) x--; break;
 		}
 		break;
-	case D_RIGHT: 
+	case D_RIGHT:
 		//if (x < (WORLD_WIDTH - 1)) x++; break;
 		if (g_Map[x + 1][y] == eBLANK)
 		{
@@ -497,6 +510,7 @@ void enter_game(int user_id, char name[])
 	strcpy_s(g_clients[user_id].m_name, name);
 	g_clients[user_id].m_name[MAX_ID_LEN] = NULL;
 	send_login_ok_packet(user_id);
+
 	g_clients[user_id].m_status = ST_ACTIVE;
 	g_clients[user_id].m_cl.unlock();
 
@@ -765,11 +779,60 @@ int API_get_y(lua_State* L)
 
 void initialize_clients()
 {
-	for (int i = 0; i < MAX_USER; ++i) {
+	for (int i = 0; i < NPC_ID_START; ++i)	// player 초기 값 설정
+	{
 		g_clients[i].m_id = i;
-
+		g_clients[i].m_level = 1;
 		g_clients[i].m_status = ST_FREE;
+		g_clients[i].m_att = LEVEL1_ATT;
+		g_clients[i].m_attackrange = 1;
+		g_clients[i].m_maxexp = LEVEL1_DATA;
+		g_clients[i].m_maxhp = LEVEL1_DATA;
+		g_clients[i].m_hp = LEVEL1_DATA;
 	}
+
+	for (int i = NPC_ID_START; i < NPC2_ID_START; ++i)	// monster1 초기 값 설정
+	{
+		g_clients[i].m_id = i;
+		g_clients[i].m_level = 1;
+		g_clients[i].m_status = ST_SLEEP;
+		g_clients[i].m_hp = MON_LEVEL1_HP;
+		g_clients[i].m_att = MON_LEVEL1_ATT;
+		g_clients[i].given_exp = MON_LEVEL1_EXP;
+	}
+
+	for (int i = NPC2_ID_START; i < NPC3_ID_START; ++i)	// monster2 초기 값 설정
+	{
+		g_clients[i].m_id = i;
+		g_clients[i].m_level = 2;
+		g_clients[i].m_status = ST_SLEEP;
+		g_clients[i].m_hp = MON_LEVEL2_HP;
+		g_clients[i].m_att = MON_LEVEL2_ATT;
+		g_clients[i].given_exp = MON_LEVEL2_EXP;
+	}
+
+	for (int i = NPC3_ID_START; i < NUM_NPC + MAX_USER; ++i)	// monster3(bossmonster) 초기 값 설정
+	{
+		g_clients[i].m_id = i;
+		g_clients[i].m_level = 3;
+		g_clients[i].m_status = ST_SLEEP;
+		g_clients[i].m_hp = MON_LEVEL3_HP;
+		g_clients[i].m_att = MON_LEVEL3_ATT;
+		g_clients[i].given_exp = MON_LEVEL3_EXP;
+	}
+
+	// Quest NPC
+	g_clients[QUEST_NPC_NUMBER].m_id = QUEST_NPC_NUMBER;
+	g_clients[QUEST_NPC_NUMBER].m_status = ST_ACTIVE;
+	g_clients[QUEST_NPC_NUMBER].m_hp = MON_LEVEL3_HP;
+	g_clients[QUEST_NPC_NUMBER].m_att = MON_LEVEL3_ATT;
+	g_clients[QUEST_NPC_NUMBER].given_exp = MON_LEVEL3_EXP;
+
+	//for (int i = 0; i < MAX_USER; ++i) {
+	//	g_clients[i].m_id = i;
+
+	//	g_clients[i].m_status = ST_FREE;
+	//}
 }
 
 void init_map()

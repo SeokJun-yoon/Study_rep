@@ -63,10 +63,13 @@ struct sc_packet_login_ok {
 	char size;
 	char type;
 	int id;
-	short x, y;
-	short hp;
-	short level;
+	int x, y;
+	int hp;
+	int maxhp;
+	int level;
+	int maxexp;
 	int	exp;
+	int att;
 };
 
 struct sc_packet_login_fail {
@@ -88,9 +91,15 @@ struct sc_packet_enter {
 	char size;
 	char type;
 	int id;
+	int x, y;
+	int hp;
+	int maxhp;
+	int level;
+	int maxexp;
+	int	exp;
+	int att;
 	char name[MAX_ID_LEN];
 	char o_type;
-	short x, y;
 };
 
 struct sc_packet_leave {

@@ -59,10 +59,12 @@ private:
 public:
 	int m_x, m_y;
 	char name[MAX_ID_LEN];
-	short hp;
-	short level;
-	short exp;
-	short id;
+	int hp;
+	int level;
+	int exp;
+	int id;
+	int maxexp;
+	int maxhp;
 
 	OBJECT(sf::Texture& t, int x, int y, int x2, int y2) {
 		m_showing = false;
@@ -237,10 +239,10 @@ void client_initialize()
 	bossmonster->loadFromFile("boss.png");
 	questnpc->loadFromFile("questnpc.png");
 	attacktex->loadFromFile("attack1.png");
-	
+
 	map_tile = OBJECT{ *maptile, 0, 0, TILE_WIDTH, TILE_WIDTH };
 	block_tile = OBJECT{ *blocktile, 0, 0, TILE_WIDTH, TILE_WIDTH };
-	
+
 	for (int i = 0; i < WORLD_WIDTH; ++i) {
 		for (int j = 0; j < WORLD_HEIGHT; ++j) {
 			if (uid(dre) == 0)
@@ -249,7 +251,7 @@ void client_initialize()
 				g_Map[i][j] = eBLANK;
 		}
 	}
-	
+
 	avatar.set_move(*player, 0, 0, 64, 64);
 	avatar.set_attack(*attacktex, 0, 0, 64, 64);
 	avatar.move(4, 4);
@@ -286,17 +288,19 @@ void ProcessPacket(char* ptr)
 		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		avatar.id = my_packet->id;
-		avatar.hp = my_packet->hp;
-		avatar.exp = my_packet->exp;
 		avatar.level = my_packet->level;
+		avatar.exp = my_packet->exp;
+		avatar.maxexp = my_packet->maxexp;
+		avatar.hp = my_packet->hp;
+		avatar.maxhp = my_packet->maxhp;
 
 		char buf[100];
 		userdata_text.setFont(g_font);
-		sprintf_s(buf, "[ ID : %dP ] [ EXP : %d / %d ] [ Level : %d ]", avatar.id, avatar.exp, (int)(100 * pow(2, (avatar.level - 1))), avatar.level);
+		sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", avatar.id, avatar.hp, avatar.maxhp, avatar.exp, avatar.maxexp, avatar.level);
 
 		userdata_text.setString(buf);
-		userdata_text.setPosition(180, 0);
-		userdata_text.setCharacterSize(45);
+		userdata_text.setPosition(30, 0);
+		userdata_text.setCharacterSize(42);
 		sf::Color color(255, 255, 255);
 		userdata_text.setFillColor(color);
 		userdata_text.setOutlineColor(sf::Color::Blue);
@@ -321,27 +325,47 @@ void ProcessPacket(char* ptr)
 			if (id < NPC_ID_START)	// id값이 플레이어 일 경우
 			{
 				npcs[id] = OBJECT{ *player, 0, 0, 64, 64 };
-				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+				npcs[id].level = my_packet->level;
+				npcs[id].hp = my_packet->hp;
+				npcs[id].maxhp = my_packet->maxhp;
+				npcs[id].exp = my_packet->exp;
+				npcs[id].maxexp = my_packet->maxexp;
 			}
 			else if (id >= NPC_ID_START && id < NPC2_ID_START) // id값이 monster1일 경우
 			{
 				npcs[id] = OBJECT{ *monster1, 0, 0, 64, 64 };
-				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+				npcs[id].level = my_packet->level;
+				npcs[id].hp = my_packet->hp;
+				npcs[id].maxhp = my_packet->maxhp;
+				npcs[id].exp = my_packet->exp;
+				npcs[id].maxexp = my_packet->maxexp;
 			}
 			else if (id >= NPC2_ID_START && id < NPC3_ID_START) // id값이 monster2일 경우
 			{
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
-				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+				npcs[id].level = my_packet->level;
+				npcs[id].hp = my_packet->hp;
+				npcs[id].maxhp = my_packet->maxhp;
+				npcs[id].exp = my_packet->exp;
+				npcs[id].maxexp = my_packet->maxexp;
 			}
 			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER) // id값이 monster3일 경우
 			{
 				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
-				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+				npcs[id].level = my_packet->level;
+				npcs[id].hp = my_packet->hp;
+				npcs[id].maxhp = my_packet->maxhp;
+				npcs[id].exp = my_packet->exp;
+				npcs[id].maxexp = my_packet->maxexp;
 			}
 			else // id값이 questnpc일 경우
 			{
-				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 }; 
-				npcs[id].hp = 100;	// 플레이어의 hp (수정해야 함)
+				npcs[id] = OBJECT{ *questnpc, 0, 0, 64, 64 };
+				npcs[id].level = my_packet->level;
+				npcs[id].hp = my_packet->hp;
+				npcs[id].maxhp = my_packet->maxhp;
+				npcs[id].exp = my_packet->exp;
+				npcs[id].maxexp = my_packet->maxexp;
 			}
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_name(my_packet->name);
@@ -391,7 +415,7 @@ void ProcessPacket(char* ptr)
 		int mess_type = my_packet->mess_type;
 		char buf[100];
 		messdata_text.setString(buf);
-		messdata_text.setPosition(20, 0);
+		messdata_text.setPosition(20, 40);
 		messdata_text.setCharacterSize(40);
 		sf::Color color(0, 0, 0);
 		messdata_text.setFillColor(color);
@@ -404,7 +428,7 @@ void ProcessPacket(char* ptr)
 			{
 				npcs[other_id].add_chat(my_packet->mess);
 			}
-			
+
 			char buf[100];
 
 			sprintf_s(buf, my_packet->mess);
@@ -418,7 +442,7 @@ void ProcessPacket(char* ptr)
 			messdata_text.setStyle(sf::Text::Underlined);
 
 		}
-		
+
 		else if (mess_type == 1)
 		{
 			npcs[other_id].add_chat(my_packet->mess);
@@ -460,7 +484,8 @@ void process_data(char* net_buf, size_t io_byte)
 	static size_t saved_packet_size = 0;
 	static char packet_buffer[BUF_SIZE];
 
-	while (0 != io_byte) {
+	while (0 != io_byte)
+	{
 		if (0 == in_packet_size) in_packet_size = ptr[0];
 		if (io_byte + saved_packet_size >= in_packet_size) {
 			memcpy(packet_buffer + saved_packet_size, ptr, in_packet_size - saved_packet_size);
@@ -512,7 +537,8 @@ void client_main()
 				if (tile_y >= WORLD_HEIGHT) break;
 				// if (((tile_x + tile_y) % 2) == 0) {
 
-				if (g_Map[tile_x][tile_y] == eBLOCKED) {
+				if (g_Map[tile_x][tile_y] == eBLOCKED)
+				{
 					block_tile.a_move(TILE_WIDTH * i + 7, TILE_WIDTH * j + 7);
 					block_tile.a_draw();
 				}
@@ -525,13 +551,13 @@ void client_main()
 			}
 		}
 	}
-	
+
 	avatar.draw();
 
 	for (auto& npc : npcs)
 	{
 		npc.second.draw();
-		if (npc.second.hp <=  0)
+		if (npc.second.hp <= 0)
 			npc.second.hide();
 		else
 			npc.second.show();
@@ -540,9 +566,10 @@ void client_main()
 	sf::Text coordinate_text;
 	coordinate_text.setFont(g_font);
 	char buf[100];
-	sprintf_s(buf, "(%d, %d)", avatar.m_x, avatar.m_y);
+	sprintf_s(buf, "Pos : (%d, %d)", avatar.m_x, avatar.m_y);
 	coordinate_text.setString(buf);
-	coordinate_text.setCharacterSize(50);
+	coordinate_text.setPosition(30, 70);
+	coordinate_text.setCharacterSize(42);
 	g_window->draw(coordinate_text);
 	g_window->draw(userdata_text);
 	g_window->draw(messdata_text);
@@ -592,7 +619,7 @@ void send_logout_packet()
 
 int main()
 {
-;
+	;
 
 	wcout.imbue(locale("korean"));
 	sf::Socket::Status status = g_socket.connect("127.0.0.1", SERVER_PORT);
@@ -619,7 +646,7 @@ int main()
 	send_packet(&m_packet);
 	//
 
-	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH , WINDOW_HEIGHT), "2D CLIENT");
+	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "2D CLIENT");
 	g_window = &window;
 
 	sf::View view = g_window->getView();
