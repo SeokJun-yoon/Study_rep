@@ -57,10 +57,30 @@ mutex timer_lock;
 
 enum C_STATUS { ST_FREE, ST_ALLOC, ST_ACTIVE, ST_SLEEP };
 
-// DB연동 시 주석해제하고 사용
+// 차후 DB연동용 (주석해제하고 사용)
 //void Load_Database();
 //void Update_Database(int id, int x, int y, int hp, int level, int exp);
 
+struct DATABASE {	// 데이터 베이스에 저장할 정보 : id, name, level, 현재 hp, 현재 exp, x 좌표, y 좌표, quest(1,2,3) 수령 상태, quest(1,2,3) 완료 상태, quest(1,2,3) 진행 정도, 
+	int db_user_id;
+	char db_user_name[10];
+	int db_user_level;
+	int db_hp;
+	int db_exp;
+	int db_x_pos;
+	int db_y_pos;
+	bool db_quest1_status;
+	int db_quest1_count;
+	bool db_quest1_complete;
+	bool db_quest2_status;
+	int db_quest2_count;
+	bool db_quest2_complete;
+	bool db_quest3_status;
+	int db_quest3_count;
+	bool db_quest3_complete;
+};
+
+// Overlapped 구조체
 struct EXOVER {
 	WSAOVERLAPPED	over;
 	ENUMOP			op;
@@ -72,6 +92,7 @@ struct EXOVER {
 	};
 };
 
+// 클라이언트 구조체
 struct CLIENT {
 	mutex		m_cl;
 	SOCKET		m_s;
@@ -93,18 +114,30 @@ struct CLIENT {
 	int m_maxexp;
 	int m_level;
 	int m_attackrange;
+	// * for quest
+	bool m_quest1_status = false;	// quest1 수령 상태 체크용. 수령 상태일 시 true
+	bool m_quest1_complete = false; // quest1 완료 상태 확인용. 완료 시 true로 변경
+	int m_quest1_count = 0;		// level 1 monster 잡으면 ++
+
+	bool m_quest2_status = false;	// quest2 수령 상태 체크용. 수령 상태일 시 true
+	bool m_quest2_complete = false; // quest2 완료 상태 확인용. 완료 시 true로 변경
+	int m_quest2_count = 0;		// level 2 monster 잡으면 ++
+
+	bool m_quest3_status = false;	// quest3 수령 상태 체크용. 수령 상태일 시 true
+	bool m_quest3_complete = false; // quest3 완료 상태 확인용. 완료 시 true로 변경
+	int m_quest3_count = 0;		// level 3 monster(boss monster) 잡으면 ++
+
 
 	// NPC
-	int NPC_TYPE;
 	int given_exp;
 	bool is_active;
 	bool is_alive;
 
 
-
 	unsigned m_move_time;
 	high_resolution_clock::time_point m_last_move_time;
 
+	// View List
 	unordered_set <int> m_view_list;
 
 	// LUA
@@ -112,11 +145,16 @@ struct CLIENT {
 	mutex lua_l;
 };
 
+// [ 전역 변수 ]
+vector<DATABASE> vec_database;
+
 CLIENT g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
 atomic_int UserCount = 0;
 
+
+// Timer
 void add_timer(int obj_id, ENUMOP op_type, int duration)
 {
 	timer_lock.lock();
@@ -136,6 +174,8 @@ bool is_near(int a, int b)	// 시야 확인
 	if (abs(g_clients[a].y - g_clients[b].y) > VIEW_RADIUS) return false;	// 시야를 벗어나게 되면 false 리턴 (y)
 	return true;
 }
+
+// send 함수
 
 void send_packet(int user_id, void* p)
 {
@@ -220,6 +260,32 @@ void send_leave_packet(int user_id, int o_id)
 	send_packet(user_id, &p);
 }
 
+void send_stat_change_packet(int get_id, int set_id)
+{
+	// 몬스터 및 플레이어 스탯 정보 변경
+
+	sc_packet_stat_change p;
+	// 플레이어 / NPC 공동 사용
+	p.id = set_id;
+	p.size = sizeof(p);
+	p.type = S2C_CHANGE_STATS;
+	p.level = g_clients[set_id].m_level;
+	p.hp = g_clients[set_id].m_hp;
+	p.maxhp = g_clients[set_id].m_maxhp;
+	p.exp = g_clients[set_id].m_exp;
+	p.att = g_clients[set_id].m_att;
+
+	// Player만 사용
+	p.maxexp = g_clients[set_id].m_maxexp;
+	p.attrange = g_clients[set_id].m_attackrange;
+
+	// NPC만 사용
+	p.givenexp = g_clients[set_id].given_exp;
+
+	send_packet(get_id, &p);
+
+}
+
 void send_move_packet(int user_id, int mover)
 {
 	sc_packet_move p;
@@ -253,6 +319,7 @@ void send_chat_packet(int user_id, int chatter, char* mess, int mess_type)
 
 void activate_npc(int id)
 {
+	g_clients[id].is_active = true;
 	C_STATUS old_state = ST_SLEEP;
 	if (true == atomic_compare_exchange_strong(&g_clients[id].m_status, &old_state, ST_ACTIVE))
 		add_timer(id, OP_RANDOM_MOVE, 1000);
@@ -260,7 +327,7 @@ void activate_npc(int id)
 
 void is_player_level_up(int user_id)
 {
-	if (g_clients[user_id].m_level == 1)
+	if (g_clients[user_id].m_level == 1)	// 플레이어 LV1 -> LV2
 	{
 		if (g_clients[user_id].m_exp >= NEED_LEVEL1_EXP)
 		{
@@ -271,10 +338,11 @@ void is_player_level_up(int user_id)
 			g_clients[user_id].m_hp = 80;
 			g_clients[user_id].m_maxhp = 80;
 			g_clients[user_id].m_att = 8;
+			cout << "Player Level Up!" << endl;
 		}
 	}
 
-	if (g_clients[user_id].m_level == 2)
+	if (g_clients[user_id].m_level == 2)	// 플레이어 LV2 -> LV3
 	{
 		if (g_clients[user_id].m_exp >= NEED_LEVEL2_EXP)
 		{
@@ -291,30 +359,132 @@ void is_player_level_up(int user_id)
 
 }
 
+
 void is_npc_die(int user_id, int npc_id)
 {
-	if (g_clients[npc_id].m_hp < 0 && g_clients[npc_id].is_active == true)
+	if ((g_clients[npc_id].m_id >= NPC_ID_START) && (g_clients[npc_id].m_id < NPC2_ID_START))	// monster 1을 잡았을 때,
 	{
-		if (g_clients[npc_id].is_alive == true)
+		if ((g_clients[npc_id].m_hp <= 0) && (g_clients[npc_id].is_active == true))
 		{
-			g_clients[user_id].m_exp += (g_clients[npc_id].m_level * 10);
-		}
-		g_clients[npc_id].is_alive = false;
-		g_clients[npc_id].is_active = false;
-
-		is_player_level_up(user_id);
-
-		char mess[100];
-		sprintf_s(mess, "ID : %s && EXP : %d && LEVEL : %d", g_clients[user_id].m_name, g_clients[user_id].m_exp, g_clients[user_id].m_level);
-
-		for (int i = 0; i < UserCount; ++i)
-		{
-			if (i == user_id)
+			if (g_clients[npc_id].is_alive == true)
 			{
-				send_chat_packet(i, user_id, mess, 0);
+				g_clients[user_id].m_exp += MON_LEVEL1_EXP;
+
+				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				{
+					is_player_level_up(user_id);
+				}
+
+				if (g_clients[user_id].m_quest1_status == true)	// quest1 수령 상태일 경우
+				{
+					if (g_clients[user_id].m_quest1_count < 5)	// quest1 완료 조건에 미치지 못한 경우
+					{
+						g_clients[user_id].m_quest1_count++;	// monster1 잡은 카운트만 증가
+					}
+					else    // 5마리 잡은 경우
+					{
+						g_clients[user_id].m_quest1_complete = true;	// quest1 완료 상태로 변경
+					}
+				}
+			}
+			g_clients[npc_id].is_alive = false;
+			g_clients[npc_id].is_active = false;
+			cout << "Monster 1 die! " << endl;
+
+			char mess[100];
+			sprintf_s(mess, "[ID : %s ] killed [Monster 1]", g_clients[user_id].m_name);	// 킬 메시지 
+			for (int i = 0; i < UserCount; ++i)
+			{
+				if (i == user_id)
+				{
+					send_chat_packet(i, user_id, mess, 0);
+				}
+			}
+		}
+
+	}
+
+	if ((g_clients[npc_id].m_id >= NPC2_ID_START) && (g_clients[npc_id].m_id < NPC3_ID_START))	// monster 2를 잡았을 때,
+	{
+		if ((g_clients[npc_id].m_hp <= 0) && (g_clients[npc_id].is_active == true))
+		{
+			if (g_clients[npc_id].is_alive == true)
+			{
+				g_clients[user_id].m_exp += MON_LEVEL2_EXP;
+
+				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				{
+					is_player_level_up(user_id);
+				}
+
+				if (g_clients[user_id].m_quest2_status == true)	// quest2 수령 상태일 경우
+				{
+					if (g_clients[user_id].m_quest2_count < 5)	// quest2 완료 조건에 미치지 못한 경우
+					{
+						g_clients[user_id].m_quest2_count++;	// monster2 잡은 카운트만 증가
+					}
+					else    // 5마리 잡은 경우
+					{
+						g_clients[user_id].m_quest2_complete = true;	// quest2 완료 상태로 변경
+					}
+				}
+			}
+			g_clients[npc_id].is_alive = false;
+			g_clients[npc_id].is_active = false;
+
+			char mess[100];
+			sprintf_s(mess, "[ID : %s ] killed [Monster 2]", g_clients[user_id].m_name);	// 킬 메시지 
+			for (int i = 0; i < UserCount; ++i)
+			{
+				if (i == user_id)
+				{
+					send_chat_packet(i, user_id, mess, 0);
+				}
 			}
 		}
 	}
+
+	if ((g_clients[npc_id].m_id >= NPC3_ID_START) && (g_clients[npc_id].m_id < (NUM_NPC + MAX_USER)))	// monster 3를 잡았을 때,
+	{
+		if ((g_clients[npc_id].m_hp <= 0) && (g_clients[npc_id].is_active == true))
+		{
+			if (g_clients[npc_id].is_alive == true)
+			{
+				g_clients[user_id].m_exp += MON_LEVEL3_EXP;
+
+				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				{
+					is_player_level_up(user_id);
+				}
+
+				if (g_clients[user_id].m_quest3_status == true)	// quest1 수령 상태일 경우
+				{
+					if (g_clients[user_id].m_quest3_count < 5)	// quest1 완료 조건에 미치지 못한 경우
+					{
+						g_clients[user_id].m_quest3_count++;	// monster1 잡은 카운트만 증가
+					}
+					else    // 5마리 잡은 경우
+					{
+						g_clients[user_id].m_quest3_complete = true;	// quest1 완료 상태로 변경
+					}
+				}
+			}
+			g_clients[npc_id].is_alive = false;
+			g_clients[npc_id].is_active = false;
+
+			char mess[100];
+			sprintf_s(mess, "[ID : %s ] killed [Boss Monster]", g_clients[user_id].m_name);	// 킬 메시지 
+			for (int i = 0; i < UserCount; ++i)
+			{
+				if (i == user_id)
+				{
+					send_chat_packet(i, user_id, mess, 0);
+				}
+			}
+		}
+	}
+
+	send_stat_change_packet(user_id, npc_id);
 }
 
 
@@ -378,6 +548,7 @@ void do_move(int user_id, int direction)
 			PostQueuedCompletionStatus(g_iocp, 1, cl.m_id, &over->over);
 		}
 		new_vl.insert(cl.m_id);
+		send_stat_change_packet(cl.m_id, g_clients[user_id].m_id);
 	}
 	send_move_packet(user_id, user_id);	// 나에게 내가 이동했다고 알려주어야 함. (밑에서는 알려주지 않음)
 
@@ -510,9 +681,11 @@ void enter_game(int user_id, char name[])
 	strcpy_s(g_clients[user_id].m_name, name);
 	g_clients[user_id].m_name[MAX_ID_LEN] = NULL;
 	send_login_ok_packet(user_id);
+	UserCount++;
 
 	g_clients[user_id].m_status = ST_ACTIVE;
 	g_clients[user_id].m_cl.unlock();
+
 
 	for (auto &cl : g_clients)
 	{
@@ -532,6 +705,7 @@ void enter_game(int user_id, char name[])
 					send_enter_packet(i, user_id);
 			}
 			//g_clients[i].m_cl.unlock();
+			send_stat_change_packet(i, g_clients[user_id].m_id);
 		}
 	}
 }
@@ -546,21 +720,28 @@ void do_attack(int id)
 
 	for (auto npc : vl) {
 
-		if ((g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y - 1) ||
-			(g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y + 1) ||
-			(g_clients[npc].x == g_clients[id].x - 1 && g_clients[npc].y == g_clients[id].y) ||
-			(g_clients[npc].x == g_clients[id].x + 1 && g_clients[npc].y == g_clients[id].y))		// 시야 안의 npc 중 1칸 이내 범위 판정
+		//if (g_clients[npc].m_id > NPC_ID_START && g_clients[npc].m_id < QUEST_NPC_NUMBER)
 		{
-			g_clients[npc].m_hp -= g_clients[id].m_att;
-
-			is_npc_die(id, npc);
-
-			char mess[100];
-			sprintf_s(mess, "%s -> attack -> %s (-A%d).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_level * 2);
-
-			for (int i = 0; i < UserCount; ++i)
+			if ((g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y - 1) ||
+				(g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y + 1) ||
+				(g_clients[npc].x == g_clients[id].x - 1 && g_clients[npc].y == g_clients[id].y) ||
+				(g_clients[npc].x == g_clients[id].x + 1 && g_clients[npc].y == g_clients[id].y))		// 시야 안의 npc 중 1칸 이내 범위 판정
 			{
-				send_chat_packet(i, id, mess, 1);
+			//	cout << "BEFORE " << g_clients[npc].m_hp << endl;
+
+				g_clients[npc].m_hp -= g_clients[id].m_att;
+				cout << "Attack !" << endl;
+			//	cout << "AFTER " << g_clients[npc].m_hp << endl;
+				is_npc_die(id, npc);
+
+				char mess[100];
+				sprintf_s(mess, "%s -> attack -> %s (-A%d).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_level * 2);
+
+				for (int i = 0; i < UserCount; ++i)
+				{
+					send_chat_packet(i, id, mess, 1);
+					send_stat_change_packet(i, npc);
+				}
 			}
 		}
 	}

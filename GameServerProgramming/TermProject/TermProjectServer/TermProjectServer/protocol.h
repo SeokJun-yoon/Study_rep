@@ -116,6 +116,21 @@ struct sc_packet_chat {
 	int mess_type;
 };
 
+struct sc_packet_stat_change {
+	char size;
+	char type;
+
+	int id;
+	int level;
+	int hp;
+	int maxhp;
+	int exp;
+	int att;
+	int maxexp;
+	int attrange;
+	int givenexp;
+};
+
 struct cs_packet_login {
 	char	size;
 	char	type;

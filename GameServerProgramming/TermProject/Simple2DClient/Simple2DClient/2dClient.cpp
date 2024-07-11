@@ -46,8 +46,8 @@ private:
 	sf::Sprite m_sprite_attack;
 	sf::Sprite m_sprite_damage;
 
-	sf::RectangleShape Hp_player;
-	sf::RectangleShape Hp_monster;
+	sf::RectangleShape Hp_greenbar;
+	sf::RectangleShape Hp_redbar;
 	sf::ConvexShape Level_UI;
 	sf::CircleShape exp_UI;
 
@@ -65,6 +65,12 @@ public:
 	int id;
 	int maxexp;
 	int maxhp;
+	int att;
+	int attrange;
+
+	// Hp bar 관련 변수
+	int maxhp_rate = 0;
+	int hp_rate = 0;
 
 	OBJECT(sf::Texture& t, int x, int y, int x2, int y2) {
 		m_showing = false;
@@ -145,17 +151,20 @@ public:
 			g_window->draw(m_sprite_attack);
 		}
 
-		Hp_player.setPosition(sf::Vector2f(rx, ry - 50));
-		Hp_player.setOutlineThickness(3.0f);
-		Hp_player.setOutlineColor(sf::Color::Black);
-		Hp_player.setFillColor(sf::Color(255, 0, 0, 100));
-		Hp_player.setSize(sf::Vector2f(100, 30));
-		g_window->draw(Hp_player);
 
-		Hp_monster.setPosition(sf::Vector2f(rx, ry - 50));
-		Hp_monster.setFillColor(sf::Color(0, 255, 0, 100));
-		Hp_monster.setSize(sf::Vector2f(hp, 30));
-		g_window->draw(Hp_monster);
+		Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
+		Hp_greenbar.setOutlineThickness(3.0f);
+		Hp_greenbar.setOutlineColor(sf::Color::Black);
+		Hp_greenbar.setFillColor(sf::Color(255, 0, 0, 100));
+		Hp_greenbar.setSize(sf::Vector2f(150, 30));
+		g_window->draw(Hp_greenbar);
+
+		Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
+		Hp_redbar.setOutlineThickness(3.0f);
+		Hp_redbar.setOutlineColor(sf::Color::Black);
+		Hp_redbar.setFillColor(sf::Color(0, 255, 0, 100));
+		Hp_redbar.setSize(sf::Vector2f(hp, 30));
+		g_window->draw(Hp_redbar);
 	}
 	void set_name(char str[]) {
 		m_name.setFont(g_font);
@@ -198,12 +207,12 @@ unordered_map <int, OBJECT> npcs;
 
 OBJECT map_tile;
 OBJECT block_tile;
-OBJECT monster_1;
-OBJECT monster_2;
-OBJECT boss_monster;
-OBJECT quest_npc;
-OBJECT attack;
-OBJECT Player;
+//OBJECT attack;
+//OBJECT monster_1;
+//OBJECT monster_2;
+//OBJECT boss_monster;
+//OBJECT quest_npc;
+//OBJECT Player;
 
 
 sf::Texture* player;
@@ -271,6 +280,7 @@ void client_finish()
 
 sf::Text userdata_text;
 sf::Text messdata_text;
+sf::Text enemymess_text;
 sf::Text messdata2_text;
 
 void ProcessPacket(char* ptr)
@@ -380,7 +390,7 @@ void ProcessPacket(char* ptr)
 		int other_id = my_packet->id;
 		if (other_id == g_myid) {
 			avatar.move(my_packet->x, my_packet->y);
-			attack.move(my_packet->x, my_packet->y);
+			//attack.move(my_packet->x, my_packet->y);
 			g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 			g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		}
@@ -415,9 +425,9 @@ void ProcessPacket(char* ptr)
 		int mess_type = my_packet->mess_type;
 		char buf[100];
 		messdata_text.setString(buf);
-		messdata_text.setPosition(20, 40);
+		messdata_text.setPosition(800, 1000);
 		messdata_text.setCharacterSize(40);
-		sf::Color color(0, 0, 0);
+		sf::Color color(255, 255, 255);
 		messdata_text.setFillColor(color);
 		messdata_text.setOutlineColor(sf::Color::Blue);
 		messdata_text.setStyle(sf::Text::Underlined);
@@ -432,14 +442,14 @@ void ProcessPacket(char* ptr)
 			char buf[100];
 
 			sprintf_s(buf, my_packet->mess);
-			messdata_text.setFont(g_font);
-			messdata_text.setString(buf);
-			messdata_text.setPosition(20, 0);
-			messdata_text.setCharacterSize(40);
-			sf::Color color(0, 0, 0);
-			messdata_text.setFillColor(color);
-			messdata_text.setOutlineColor(sf::Color::Blue);
-			messdata_text.setStyle(sf::Text::Underlined);
+			enemymess_text.setFont(g_font);
+			enemymess_text.setString(buf);
+			enemymess_text.setPosition(20, 400);
+			enemymess_text.setCharacterSize(40);
+			sf::Color color(255, 255, 255);
+			enemymess_text.setFillColor(color);
+			enemymess_text.setOutlineColor(sf::Color::Blue);
+			enemymess_text.setStyle(sf::Text::Underlined);
 
 		}
 
@@ -470,6 +480,34 @@ void ProcessPacket(char* ptr)
 		}
 	}
 
+	case S2C_CHANGE_STATS:
+	{
+		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
+		int id = my_packet->id;
+
+		if (id == g_myid)
+		{
+			avatar.level = my_packet->level;
+			avatar.hp = my_packet->hp;
+			avatar.maxhp = my_packet->maxhp;
+			avatar.exp = my_packet->exp;
+			avatar.maxexp = my_packet->maxexp;
+			avatar.att = my_packet->att;
+			avatar.attrange = my_packet->attrange;
+
+			avatar.show();
+		}
+
+		if (NPC_ID_START < id && id < QUEST_NPC_NUMBER)
+		{
+			npcs[id].level = my_packet->level;
+			npcs[id].hp = my_packet->hp;
+			npcs[id].maxhp = my_packet->maxhp;
+			npcs[id].exp = my_packet->givenexp;
+			npcs[id].att = my_packet->att;
+		}
+	}
+	break;
 
 	default:
 		printf("Unknown PACKET type [%d]\n", ptr[1]);
@@ -619,8 +657,6 @@ void send_logout_packet()
 
 int main()
 {
-	;
-
 	wcout.imbue(locale("korean"));
 	sf::Socket::Status status = g_socket.connect("127.0.0.1", SERVER_PORT);
 	g_socket.setBlocking(false);
