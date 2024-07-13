@@ -25,19 +25,11 @@ extern "C" {
 using namespace std;
 using namespace chrono;
 
-constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
-constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
-//constexpr auto MAX_USER = 3000;	// 최대 접속 유저 수
-
-#define NEED_LEVEL1_EXP 50
-#define NEED_LEVEL2_EXP 80
-#define NEED_LEVEL3_EXP 100
-
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
-enum PLAYER_MAX_DATA { LEVEL1_DATA = 50, LEVEL2_DATA = 80, LEVEL3_DATA = 100 };
-enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 5, LEVEL2_ATT = 8, LEVEL3_ATT = 10 };
-enum MONSTER_MAX_HP { MON_LEVEL1_HP = 25, MON_LEVEL2_HP = 80, MON_LEVEL3_HP = 150 };
-enum MONSTER_ATTACK_DATA { MON_LEVEL1_ATT = 5, MON_LEVEL2_ATT = 10, MON_LEVEL3_ATT = 15 };
+enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 50, LEVEL2_MAX_EXP = 80, LEVEL3_MAX_EXP = 100};
+enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 10, LEVEL2_ATT = 15, LEVEL3_ATT = 20 };
+enum MONSTER_MAX_HP { MON_LEVEL1_HP = 50, MON_LEVEL2_HP = 100, MON_LEVEL3_HP = 150 };
+enum MONSTER_ATTACK_DATA { MON_LEVEL1_ATT = 10, MON_LEVEL2_ATT = 15, MON_LEVEL3_ATT = 20 };
 enum MONSTER_GIVEN_EXP { MON_LEVEL1_EXP = 5, MON_LEVEL2_EXP = 8, MON_LEVEL3_EXP = 10 };
 
 struct event_type {
@@ -329,30 +321,31 @@ void is_player_level_up(int user_id)
 {
 	if (g_clients[user_id].m_level == 1)	// 플레이어 LV1 -> LV2
 	{
-		if (g_clients[user_id].m_exp >= NEED_LEVEL1_EXP)
+		if (g_clients[user_id].m_exp >= LEVEL1_MAX_EXP)
 		{
 			g_clients[user_id].m_level = 2;
 			g_clients[user_id].m_exp = 0;
-			g_clients[user_id].m_maxexp = 80;
+			g_clients[user_id].m_maxexp = LEVEL2_MAX_EXP;
 			g_clients[user_id].m_attackrange = 2;
-			g_clients[user_id].m_hp = 80;
-			g_clients[user_id].m_maxhp = 80;
-			g_clients[user_id].m_att = 8;
+			g_clients[user_id].m_hp = PLAYER_MAX_HP;
+			g_clients[user_id].m_maxhp = PLAYER_MAX_HP;
+			g_clients[user_id].m_att = LEVEL2_ATT;
 			cout << "Player Level Up!" << endl;
 		}
 	}
 
 	if (g_clients[user_id].m_level == 2)	// 플레이어 LV2 -> LV3
 	{
-		if (g_clients[user_id].m_exp >= NEED_LEVEL2_EXP)
+		if (g_clients[user_id].m_exp >= LEVEL2_MAX_EXP)
 		{
 			g_clients[user_id].m_level = 3;
 			g_clients[user_id].m_exp = 0;
-			g_clients[user_id].m_maxexp = 100;
+			g_clients[user_id].m_maxexp = LEVEL3_MAX_EXP;
 			g_clients[user_id].m_attackrange = 3;
-			g_clients[user_id].m_hp = 100;
-			g_clients[user_id].m_maxhp = 100;
-			g_clients[user_id].m_att = 10;
+			g_clients[user_id].m_hp = PLAYER_MAX_HP;
+			g_clients[user_id].m_maxhp = PLAYER_MAX_HP;
+			g_clients[user_id].m_att = LEVEL3_ATT;
+			cout << "Player Level Up!" << endl;
 		}
 	}
 
@@ -967,9 +960,9 @@ void initialize_clients()
 		g_clients[i].m_status = ST_FREE;
 		g_clients[i].m_att = LEVEL1_ATT;
 		g_clients[i].m_attackrange = 1;
-		g_clients[i].m_maxexp = LEVEL1_DATA;
-		g_clients[i].m_maxhp = LEVEL1_DATA;
-		g_clients[i].m_hp = LEVEL1_DATA;
+		g_clients[i].m_maxexp = LEVEL1_MAX_EXP;
+		g_clients[i].m_maxhp = PLAYER_MAX_HP;
+		g_clients[i].m_hp = PLAYER_MAX_HP;
 	}
 
 	for (int i = NPC_ID_START; i < NPC2_ID_START; ++i)	// monster1 초기 값 설정

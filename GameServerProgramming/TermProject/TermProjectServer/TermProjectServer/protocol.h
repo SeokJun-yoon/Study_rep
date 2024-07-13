@@ -22,6 +22,10 @@ constexpr int MAX_ID_LEN = 10;	// 최대 ID 길이
 constexpr int MAX_STR_LEN = 100;  // string 최대 길이
 constexpr int VIEW_RADIUS = 8; // 시야 범위
 
+constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
+constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
+
+
 constexpr unsigned char O_PLAYER = 0;
 constexpr unsigned char O_NPC1 = 1;
 constexpr unsigned char O_NPC2 = 2;
@@ -31,6 +35,8 @@ constexpr unsigned char D_UP = 0;
 constexpr unsigned char D_DOWN = 1;
 constexpr unsigned char D_LEFT = 2;
 constexpr unsigned char D_RIGHT = 3;
+
+#define PLAYER_MAX_HP 100	// 플레이어 최대 체력
 
 #define S2C_LOGIN_OK		1
 #define S2C_MOVE			2

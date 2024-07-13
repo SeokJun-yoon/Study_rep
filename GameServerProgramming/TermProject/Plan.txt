@@ -60,36 +60,36 @@ BossMonster 처치 시에 화면 중앙에 CLEAR ! 띄우며 종료
 
 * Player Stats
 Player Level 1 : 
-MaxHp = 50
-Attack = 5
+MaxHp = 100
+Attack = 10
 Max_Exp = 50
 Attack_Range = 1
 
 Player Level 2 : 
-MaxHp = 80
-Attack = 8
+MaxHp = 100
+Attack = 15
 Max_Exp = 80
 Attack_Range = 2
 
 Player Level 3 : 
 MaxHp = 100
-Attack = 10
+Attack = 20
 Max_Exp = 100
 Attack_Range = 3
 
 * Monster Stats (몬스터의 공격범위는 무조건 몬스터 상하좌우 1칸)
 Monster Level1 ( 5마리 처치시 25, 퀘스트 완료시 25 획득, -> Level2로 )
-MaxHp : 25
-Attack : 5
+MaxHp : 50
+Attack : 10
 Given_exp : 5
 
 Monster Level2 ( 5마리 처치시 40, 퀘스트 완료시 40 획득, -> Level3로 )
-MaxHp : 80
-Attack : 10
+MaxHp : 100
+Attack : 15
 Given_exp : 8
 
 Monster Level3 ( 테스트 해보고 수정해야함)
 MaxHp : 150
-Attack : 15
+Attack : 20
 Given_exp : 10
 

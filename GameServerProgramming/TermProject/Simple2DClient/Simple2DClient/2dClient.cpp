@@ -151,20 +151,79 @@ public:
 			g_window->draw(m_sprite_attack);
 		}
 
+		float hp_rate;
 
-		Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
-		Hp_greenbar.setOutlineThickness(3.0f);
-		Hp_greenbar.setOutlineColor(sf::Color::Black);
-		Hp_greenbar.setFillColor(sf::Color(255, 0, 0, 100));
-		Hp_greenbar.setSize(sf::Vector2f(150, 30));
-		g_window->draw(Hp_greenbar);
+		if (id < NPC_ID_START || (id>=NPC2_ID_START && id<NPC3_ID_START))
+		{
 
-		Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
-		Hp_redbar.setOutlineThickness(3.0f);
-		Hp_redbar.setOutlineColor(sf::Color::Black);
-		Hp_redbar.setFillColor(sf::Color(0, 255, 0, 100));
-		Hp_redbar.setSize(sf::Vector2f(hp, 30));
-		g_window->draw(Hp_redbar);
+			Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
+			Hp_redbar.setOutlineThickness(3.0f);
+			Hp_redbar.setOutlineColor(sf::Color::Black);
+			Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
+			Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
+			g_window->draw(Hp_redbar);
+
+			hp_rate = 1.0f;
+			Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
+			Hp_greenbar.setOutlineThickness(3.0f);
+			Hp_greenbar.setOutlineColor(sf::Color::Black);
+			Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
+			Hp_greenbar.setSize(sf::Vector2f(hp * hp_rate, 30));
+			g_window->draw(Hp_greenbar);
+		}
+
+		if (id >= NPC_ID_START && id < NPC2_ID_START)
+		{
+			Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
+			Hp_redbar.setOutlineThickness(3.0f);
+			Hp_redbar.setOutlineColor(sf::Color::Black);
+			Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
+			Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
+			g_window->draw(Hp_redbar);
+
+			hp_rate = 2.0f;
+			Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
+			Hp_greenbar.setOutlineThickness(3.0f);
+			Hp_greenbar.setOutlineColor(sf::Color::Black);
+			Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
+			Hp_greenbar.setSize(sf::Vector2f(((float)hp * hp_rate), 30));
+			g_window->draw(Hp_greenbar);
+		}
+
+		//if (id >= NPC3_ID_START && id < QUEST_NPC_NUMBER)
+		//{
+		//	hp_rate = (2/3);
+		//	Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
+		//	Hp_greenbar.setOutlineThickness(3.0f);
+		//	Hp_greenbar.setOutlineColor(sf::Color::Black);
+		//	Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
+		//	Hp_greenbar.setSize(sf::Vector2f(hp * hp_rate, 30));
+		//	g_window->draw(Hp_greenbar);
+
+		//	Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
+		//	Hp_redbar.setOutlineThickness(3.0f);
+		//	Hp_redbar.setOutlineColor(sf::Color::Black);
+		//	Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
+		//	Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
+		//	g_window->draw(Hp_redbar);
+
+
+		//}
+
+
+		//Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
+		//Hp_redbar.setOutlineThickness(3.0f);
+		//Hp_redbar.setOutlineColor(sf::Color::Black);
+		//Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
+		//Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
+		//g_window->draw(Hp_redbar);
+
+		//Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
+		//Hp_greenbar.setOutlineThickness(3.0f);
+		//Hp_greenbar.setOutlineColor(sf::Color::Black);
+		//Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
+		//Hp_greenbar.setSize(sf::Vector2f(hp, 30));
+		//g_window->draw(Hp_greenbar);
 	}
 	void set_name(char str[]) {
 		m_name.setFont(g_font);
