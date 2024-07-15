@@ -21,9 +21,14 @@ extern "C" {
 #include <chrono>
 #include <queue>
 #include <string>
+#include <sqlext.h> 
 
 using namespace std;
 using namespace chrono;
+
+#define UNICODE  
+#define NAME_LEN 50  
+#define PHONE_LEN 60
 
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
 enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 50, LEVEL2_MAX_EXP = 80, LEVEL3_MAX_EXP = 100};
@@ -144,6 +149,108 @@ CLIENT g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
 atomic_int UserCount = 0;
+
+//void HandleDiagnosticRecord(SQLHANDLE hHandle, SQLSMALLINT hType, RETCODE RetCode)
+//{
+//	SQLSMALLINT iRec = 0;
+//	SQLINTEGER  iError;
+//	WCHAR      wszMessage[1000];
+//	WCHAR      wszState[SQL_SQLSTATE_SIZE + 1];
+//	if (RetCode == SQL_INVALID_HANDLE) {
+//		fwprintf(stderr, L"Invalid handle!\n");
+//		return;
+//	}
+//	while (SQLGetDiagRec(hType, hHandle, ++iRec, wszState, &iError, wszMessage,
+//		(SQLSMALLINT)(sizeof(wszMessage) / sizeof(WCHAR)), (SQLSMALLINT *)NULL) == SQL_SUCCESS) {
+//		// Hide data truncated..
+//		if (wcsncmp(wszState, L"01004", 5)) {
+//			fwprintf(stderr, L"[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+//		}
+//	}
+//}
+//
+//void LoadDatabase(string inputID)
+//{
+//	SQLHENV henv;
+//	SQLHDBC hdbc;
+//	SQLHSTMT hstmt = 0;
+//	SQLRETURN retcode;
+//	SQLWCHAR CharacterName[NAME_LEN];
+//	SQLINTEGER CharacterID, CharacterLevel, CharacterExp;
+//	SQLLEN cbName = 0, cbID = 0, cbLevel = 0, cbExp = 0;
+//
+//	setlocale(LC_ALL, "korean");
+//
+//	// Allocate environment handle  
+//	retcode = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
+//
+//	// Set the ODBC version environment attribute  
+//	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+//		retcode = SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER*)SQL_OV_ODBC3, 0);
+//
+//		// Allocate connection handle  
+//		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+//			retcode = SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+//
+//			// Set login timeout to 5 seconds  
+//			if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+//				SQLSetConnectAttr(hdbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER)5, 0);
+//
+//				// Connect to data source  
+//				retcode = SQLConnect(hdbc, (SQLWCHAR*)L"game_db_odbc", SQL_NTS, (SQLWCHAR*)NULL, 0, NULL, 0);
+//
+//				// Allocate statement handle  
+//				if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+//					cout << "ODBC Connect Okay!" << endl;
+//					retcode = SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+//
+//					SQLWCHAR query[1024];
+//					wsprintf(query, L"EXEC LoadCharacterByName '%s'", inputID.c_str());
+//
+//					retcode = SQLExecDirect(hstmt, (SQLWCHAR *)L"query", SQL_NTS);
+//
+//					if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
+//					{
+//						cout << "Select Okay!" << endl;
+//						// Bind columns 1, 2, and 3  
+//						retcode = SQLBindCol(hstmt, 1, SQL_C_LONG, &CharacterID, 100, &cbID);
+//						retcode = SQLBindCol(hstmt, 2, SQL_C_WCHAR, &CharacterName, NAME_LEN, &cbName);
+//						retcode = SQLBindCol(hstmt, 3, SQL_C_LONG, &CharacterLevel, 100, &cbLevel);
+//						retcode = SQLBindCol(hstmt, 4, SQL_C_LONG, &CharacterExp, 100, &cbExp);
+//
+//						// Fetch and print each row of data. On an error, display a message and exit.  
+//						for (int i = 0; ; i++) {
+//							retcode = SQLFetch(hstmt);
+//							if (retcode == SQL_ERROR || retcode == SQL_SUCCESS_WITH_INFO)
+//								cout << "Error" << endl;
+//							if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
+//							{
+//								wprintf(L"Name:%s:, ID:%d, Level:%d, Exp:%d \n", i + 1, CharacterName, CharacterID, CharacterLevel, CharacterExp);
+//							}
+//							else
+//								break;
+//						}
+//					}
+//					else
+//					{
+//						cout << "Wrong Input ID" << endl;
+//					}
+//
+//					// Process data  
+//					if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+//						SQLCancel(hstmt);
+//						SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+//					}
+//
+//					SQLDisconnect(hdbc);
+//				}
+//
+//				SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+//			}
+//		}
+//		SQLFreeHandle(SQL_HANDLE_ENV, henv);
+//	}
+//}
 
 
 // Timer
@@ -349,7 +456,6 @@ void is_player_level_up(int user_id)
 		}
 	}
 
-
 }
 
 
@@ -362,6 +468,7 @@ void is_npc_die(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += MON_LEVEL1_EXP;
+				cout << "Get Level1 EXP(5) !" << endl;
 
 				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
 				{
@@ -404,6 +511,7 @@ void is_npc_die(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += MON_LEVEL2_EXP;
+				cout << "Get Level2 EXP(8) !" << endl;
 
 				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
 				{
@@ -444,6 +552,7 @@ void is_npc_die(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += MON_LEVEL3_EXP;
+				cout << "Get Level2 EXP(8) !" << endl;
 
 				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
 				{
@@ -477,7 +586,7 @@ void is_npc_die(int user_id, int npc_id)
 		}
 	}
 
-	send_stat_change_packet(user_id, npc_id);
+	send_stat_change_packet(g_clients[user_id].m_id, user_id);
 }
 
 
@@ -971,6 +1080,7 @@ void initialize_clients()
 		g_clients[i].m_level = 1;
 		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].m_hp = MON_LEVEL1_HP;
+		g_clients[i].m_maxhp = MON_LEVEL1_HP;
 		g_clients[i].m_att = MON_LEVEL1_ATT;
 		g_clients[i].given_exp = MON_LEVEL1_EXP;
 	}
@@ -981,6 +1091,7 @@ void initialize_clients()
 		g_clients[i].m_level = 2;
 		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].m_hp = MON_LEVEL2_HP;
+		g_clients[i].m_maxhp = MON_LEVEL2_HP;
 		g_clients[i].m_att = MON_LEVEL2_ATT;
 		g_clients[i].given_exp = MON_LEVEL2_EXP;
 	}
@@ -991,6 +1102,7 @@ void initialize_clients()
 		g_clients[i].m_level = 3;
 		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].m_hp = MON_LEVEL3_HP;
+		g_clients[i].m_maxhp = MON_LEVEL3_HP;
 		g_clients[i].m_att = MON_LEVEL3_ATT;
 		g_clients[i].given_exp = MON_LEVEL3_EXP;
 	}
@@ -999,6 +1111,7 @@ void initialize_clients()
 	g_clients[QUEST_NPC_NUMBER].m_id = QUEST_NPC_NUMBER;
 	g_clients[QUEST_NPC_NUMBER].m_status = ST_ACTIVE;
 	g_clients[QUEST_NPC_NUMBER].m_hp = MON_LEVEL3_HP;
+	g_clients[QUEST_NPC_NUMBER].m_maxhp = MON_LEVEL3_HP;
 	g_clients[QUEST_NPC_NUMBER].m_att = MON_LEVEL3_ATT;
 	g_clients[QUEST_NPC_NUMBER].given_exp = MON_LEVEL3_EXP;
 
@@ -1149,6 +1262,13 @@ int main()
 	init_npc();
 	cout << "NPC Initialization finished.\n";
 	l_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+
+	//cout << endl;
+	//cout << "Input ID : ";
+	//string inputID;
+	//cin >> inputID;
+
+	//LoadDatabase(inputID);
 
 	SOCKADDR_IN s_address;
 	memset(&s_address, 0, sizeof(s_address));
