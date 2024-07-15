@@ -11,6 +11,7 @@ using namespace chrono;
 #include "..\..\TermProjectServer\TermProjectServer\protocol.h"
 
 sf::TcpSocket g_socket;
+sf::Text userdata_text;
 
 constexpr auto SCREEN_WIDTH = 20;
 constexpr auto SCREEN_HEIGHT = 20;
@@ -169,8 +170,6 @@ public:
 		Hp_greenbar.setSize(sf::Vector2f(hpValue, 30));
 		g_window->draw(Hp_greenbar);
 
-
-
 		// maxhp = 50    | PLAYER_MAX_HP(100)  | hp = ?
 		// maxhp = 100	 | PLAYER_MAX_HP(100)  | hp = ? 
 		// maxhp = 150	 | PLAYER_MAX_HP(100)  | hp = ?
@@ -277,6 +276,20 @@ public:
 		m_text.setString(chat);
 		m_time_out = high_resolution_clock::now() + 1s;
 	}
+
+	void display_userdata()
+	{
+		char buf[100];
+		userdata_text.setFont(g_font);
+		sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", id, hp, maxhp, exp, maxexp, level);
+		userdata_text.setString(buf);
+		userdata_text.setPosition(30, 0);
+		userdata_text.setCharacterSize(42);
+		sf::Color color(255, 255, 255);
+		userdata_text.setFillColor(color);
+		userdata_text.setOutlineColor(sf::Color::Blue);
+		userdata_text.setStyle(sf::Text::Underlined);
+	}
 };
 
 OBJECT avatar;
@@ -355,7 +368,7 @@ void client_finish()
 	delete attacktex;
 }
 
-sf::Text userdata_text;
+//sf::Text userdata_text;
 sf::Text messdata_text;
 sf::Text enemymess_text;
 sf::Text messdata2_text;
@@ -380,18 +393,19 @@ void ProcessPacket(char* ptr)
 		avatar.maxexp = my_packet->maxexp;
 		avatar.hp = my_packet->hp;
 		avatar.maxhp = my_packet->maxhp;
+		
+		avatar.display_userdata();
+		//char buf[100];
+		//userdata_text.setFont(g_font);
+		//sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", avatar.id, avatar.hp, avatar.maxhp, avatar.exp, avatar.maxexp, avatar.level);
 
-		char buf[100];
-		userdata_text.setFont(g_font);
-		sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", avatar.id, avatar.hp, avatar.maxhp, avatar.exp, avatar.maxexp, avatar.level);
-
-		userdata_text.setString(buf);
-		userdata_text.setPosition(30, 0);
-		userdata_text.setCharacterSize(42);
-		sf::Color color(255, 255, 255);
-		userdata_text.setFillColor(color);
-		userdata_text.setOutlineColor(sf::Color::Blue);
-		userdata_text.setStyle(sf::Text::Underlined);
+		//userdata_text.setString(buf);
+		//userdata_text.setPosition(30, 0);
+		//userdata_text.setCharacterSize(42);
+		//sf::Color color(255, 255, 255);
+		//userdata_text.setFillColor(color);
+		//userdata_text.setOutlineColor(sf::Color::Blue);
+		//userdata_text.setStyle(sf::Text::Underlined);
 
 		avatar.show();
 
@@ -572,6 +586,7 @@ void ProcessPacket(char* ptr)
 			avatar.att = my_packet->att;
 			avatar.attrange = my_packet->attrange;
 
+			avatar.display_userdata();
 			avatar.show();
 		}
 

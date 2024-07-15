@@ -455,13 +455,13 @@ void is_player_level_up(int user_id)
 			cout << "Player Level Up!" << endl;
 		}
 	}
-
+	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 }
 
 
 void is_npc_die(int user_id, int npc_id)
 {
-	if ((g_clients[npc_id].m_id >= NPC_ID_START) && (g_clients[npc_id].m_id < NPC2_ID_START))	// monster 1을 잡았을 때,
+	if ((g_clients[npc_id].m_id >= NPC_ID_START) && (g_clients[npc_id].m_id < NPC2_ID_START))	// monster1 을 잡았을 때,
 	{
 		if ((g_clients[npc_id].m_hp <= 0) && (g_clients[npc_id].is_active == true))
 		{
@@ -470,7 +470,7 @@ void is_npc_die(int user_id, int npc_id)
 				g_clients[user_id].m_exp += MON_LEVEL1_EXP;
 				cout << "Get Level1 EXP(5) !" << endl;
 
-				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
 					is_player_level_up(user_id);
 				}
@@ -513,7 +513,7 @@ void is_npc_die(int user_id, int npc_id)
 				g_clients[user_id].m_exp += MON_LEVEL2_EXP;
 				cout << "Get Level2 EXP(8) !" << endl;
 
-				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
 					is_player_level_up(user_id);
 				}
@@ -552,9 +552,9 @@ void is_npc_die(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += MON_LEVEL3_EXP;
-				cout << "Get Level2 EXP(8) !" << endl;
+				cout << "Get Level3 EXP(10) !" << endl;
 
-				if (g_clients[user_id].m_exp > g_clients[user_id].m_maxexp)
+				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
 					is_player_level_up(user_id);
 				}
@@ -586,7 +586,7 @@ void is_npc_die(int user_id, int npc_id)
 		}
 	}
 
-	send_stat_change_packet(g_clients[user_id].m_id, user_id);
+	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 }
 
 
@@ -1141,6 +1141,8 @@ void init_npc()
 		g_clients[i].m_s = 0;
 		g_clients[i].m_id = i;
 
+		g_clients[i].is_active = true;
+		g_clients[i].is_alive = true;
 		g_clients[i].m_status = ST_SLEEP;
 		g_clients[i].x = rand() % WORLD_WIDTH;
 		g_clients[i].y = rand() % WORLD_HEIGHT;
