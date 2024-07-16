@@ -492,13 +492,10 @@ void is_npc_die(int user_id, int npc_id)
 			cout << "Monster 1 die! " << endl;
 
 			char mess[100];
-			sprintf_s(mess, "[ID : %s ] killed [Monster 1]", g_clients[user_id].m_name);	// 킬 메시지 
+			sprintf_s(mess, "[ ID : %s ] killed [ Monster 1 ]", g_clients[user_id].m_name);	// 킬 메시지 
 			for (int i = 0; i < UserCount; ++i)
 			{
-				if (i == user_id)
-				{
-					send_chat_packet(i, user_id, mess, 0);
-				}
+				send_chat_packet(i, user_id, mess, 0);
 			}
 		}
 
@@ -534,13 +531,10 @@ void is_npc_die(int user_id, int npc_id)
 			g_clients[npc_id].is_active = false;
 
 			char mess[100];
-			sprintf_s(mess, "[ID : %s ] killed [Monster 2]", g_clients[user_id].m_name);	// 킬 메시지 
+			sprintf_s(mess, "[ ID : %s ] killed [ Monster 2]", g_clients[user_id].m_name);	// 킬 메시지 
 			for (int i = 0; i < UserCount; ++i)
 			{
-				if (i == user_id)
-				{
-					send_chat_packet(i, user_id, mess, 0);
-				}
+				send_chat_packet(i, user_id, mess, 0);
 			}
 		}
 	}
@@ -575,13 +569,10 @@ void is_npc_die(int user_id, int npc_id)
 			g_clients[npc_id].is_active = false;
 
 			char mess[100];
-			sprintf_s(mess, "[ID : %s ] killed [Boss Monster]", g_clients[user_id].m_name);	// 킬 메시지 
+			sprintf_s(mess, "[ ID : %s ] killed [ Boss Monster]", g_clients[user_id].m_name);	// 킬 메시지 
 			for (int i = 0; i < UserCount; ++i)
 			{
-				if (i == user_id)
-				{
-					send_chat_packet(i, user_id, mess, 0);
-				}
+				send_chat_packet(i, user_id, mess, 0);
 			}
 		}
 	}
@@ -822,28 +813,33 @@ void do_attack(int id)
 
 	for (auto npc : vl) {
 
-		//if (g_clients[npc].m_id > NPC_ID_START && g_clients[npc].m_id < QUEST_NPC_NUMBER)
+		if (g_clients[npc].m_id >= NPC_ID_START && g_clients[npc].m_id < QUEST_NPC_NUMBER)	// monster일 경우
 		{
 			if ((g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y - 1) ||
 				(g_clients[npc].x == g_clients[id].x && g_clients[npc].y == g_clients[id].y + 1) ||
 				(g_clients[npc].x == g_clients[id].x - 1 && g_clients[npc].y == g_clients[id].y) ||
 				(g_clients[npc].x == g_clients[id].x + 1 && g_clients[npc].y == g_clients[id].y))		// 시야 안의 npc 중 1칸 이내 범위 판정
 			{
-			//	cout << "BEFORE " << g_clients[npc].m_hp << endl;
-
 				g_clients[npc].m_hp -= g_clients[id].m_att;
 				cout << "Attack !" << endl;
-			//	cout << "AFTER " << g_clients[npc].m_hp << endl;
 				is_npc_die(id, npc);
 
 				char mess[100];
-				sprintf_s(mess, "%s -> attack -> %s (-A%d).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_level * 2);
+				sprintf_s(mess, "[ %s ] -> Attack -> [ %s ] (%d Damage).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_att);
 
-				for (int i = 0; i < UserCount; ++i)
+				// 내 주변 유저에게 B	roadCast
+				for (auto user : vl) 
 				{
-					send_chat_packet(i, id, mess, 1);
-					send_stat_change_packet(i, npc);
+					if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
+					{
+						send_chat_packet(g_clients[user].m_id, id, mess, 1);
+						send_stat_change_packet(g_clients[user].m_id, npc);
+					}
 				}
+
+				// 나에게 알림
+				send_chat_packet(g_clients[id].m_id, id, mess, 1);
+				send_stat_change_packet(g_clients[id].m_id, npc);
 			}
 		}
 	}
@@ -1037,7 +1033,7 @@ int API_SendMessage(lua_State* L)
 	int user_id = (int)lua_tointeger(L, -2);
 	char *mess = (char*)lua_tostring(L, -1);
 
-	send_chat_packet(user_id, my_id, mess, 0);
+	send_chat_packet(user_id, my_id, mess, 2);
 	lua_pop(L, 3);
 	return 0;
 }

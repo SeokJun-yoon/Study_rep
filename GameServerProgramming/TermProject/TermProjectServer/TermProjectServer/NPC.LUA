@@ -17,7 +17,7 @@ end
 function quest_accept(p_id)
 	if API_get_x(p_id)==API_get_x(myid) then
 		if API_get_y(p_id)==API_get_y(myid) then
-			API_send_message(myid, player, "Quest Accept")
+			API_send_message(myid, p_id, "Quest Accept")
 		end
 	end
 end	
@@ -29,6 +29,6 @@ function event_player_move(p_id)
     local npc_y = API_get_y(myid)
     
     if math.abs(player_x - npc_x) <= 2 and math.abs(player_y - npc_y) <= 2 then
-        API_send_message(myid, player, "Enemy!")
+        API_send_message(myid, p_id, "Enemy!")
     end
 end
