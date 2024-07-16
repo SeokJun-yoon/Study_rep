@@ -456,6 +456,13 @@ void is_player_level_up(int user_id)
 		}
 	}
 	send_stat_change_packet(user_id, g_clients[user_id].m_id);
+	char mess[100];
+	sprintf_s(mess, "[ P%s ] Level [ %d ] -> Level [ %d ] !", g_clients[user_id].m_name, g_clients[user_id].m_level -1, g_clients[user_id].m_level);	// 킬 메시지 
+	
+	for (int i = 0; i < UserCount; ++i)
+	{
+		send_chat_packet(i, user_id, mess, 3);
+	}
 }
 
 

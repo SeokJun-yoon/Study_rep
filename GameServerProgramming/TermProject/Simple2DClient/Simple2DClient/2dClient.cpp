@@ -42,6 +42,7 @@ sf::Text m_responText;
 high_resolution_clock::time_point m_time_out_responText;
 
 high_resolution_clock::time_point m_time_out_playerattackText;
+high_resolution_clock::time_point m_time_out_killmonsterText;;
 
 class OBJECT {
 private:
@@ -257,7 +258,13 @@ public:
 	{
 		sf::Color color;
 
-		if (id >= NPC_ID_START && id < NPC2_ID_START)
+		if (id < NPC_ID_START)
+		{
+			color.r = 255;
+			color.g = 255;
+			color.b = 255;
+		}
+		else if (id >= NPC_ID_START && id < NPC2_ID_START)
 		{
 			color.r = 255;
 			color.g = 0;
@@ -413,6 +420,7 @@ sf::Text killmonster_text; // mess_type = 0
 sf::Text playerattack_text; // mess_type = 1
 sf::Text monsterdie_text;
 sf::Text enemymess_text;
+sf::Text playerlevelup_text; // mess_type = 3
 //sf::Text messdata2_text;
 
 void ProcessPacket(char* ptr)
@@ -563,7 +571,7 @@ void ProcessPacket(char* ptr)
 			sprintf_s(buf, my_packet->mess);
 			killmonster_text.setFont(g_font);
 			killmonster_text.setString(buf);
-			killmonster_text.setPosition(20, 1200);
+			killmonster_text.setPosition(20, 1100);
 			killmonster_text.setCharacterSize(40);
 			static int notice_color;
 			notice_color++;
@@ -590,6 +598,7 @@ void ProcessPacket(char* ptr)
 			killmonster_text.setFillColor(color);
 			killmonster_text.setOutlineColor(sf::Color::Blue);
 			killmonster_text.setStyle(sf::Text::Underlined);
+			m_time_out_killmonsterText = high_resolution_clock::now() + 1s;
 		}
 
 		else if (mess_type == 1) // 플레이어가 공격했을 때
@@ -598,7 +607,7 @@ void ProcessPacket(char* ptr)
 			sprintf_s(buf, my_packet->mess);
 			playerattack_text.setFont(g_font);
 			playerattack_text.setString(buf);
-			playerattack_text.setPosition(20, 1100);
+			playerattack_text.setPosition(20, 1000);
 			playerattack_text.setCharacterSize(40);
 			sf::Color color(255, 255, 255);
 			playerattack_text.setFillColor(color);
@@ -613,6 +622,41 @@ void ProcessPacket(char* ptr)
 			{
 				npcs[other_id].add_chat(my_packet->mess);
 			}
+		}
+
+		else if (mess_type == 3)	// 레벨 업
+		{
+			char buf[100];
+			sprintf_s(buf, my_packet->mess);
+			playerlevelup_text.setFont(g_font);
+			playerlevelup_text.setString(buf);
+			playerlevelup_text.setPosition(20, 1200);
+			playerlevelup_text.setCharacterSize(40);
+			static int notice_color;
+			notice_color++;
+			notice_color = notice_color % 3;
+			sf::Color color;
+			switch (notice_color)
+			{
+			case 0:
+				color.r = 0;
+				color.g = 0;
+				color.b = 255;
+				break;
+			case 1:
+				color.r = 255;
+				color.g = 0;
+				color.b = 0;
+				break;
+			case 2:
+				color.r = 0;
+				color.g = 255;
+				color.b = 0;
+				break;
+			}
+			playerlevelup_text.setFillColor(color);
+			playerlevelup_text.setOutlineColor(sf::Color::Blue);
+			playerlevelup_text.setStyle(sf::Text::Underlined);
 		}
 	}
 	break;
@@ -759,12 +803,17 @@ void client_main()
 
 	g_window->draw(coordinate_text); // 좌표 데이터 ( pos)
 	g_window->draw(userdata_text); // UI 상단의 userdata
-	g_window->draw(killmonster_text); // 몬스터 잡았을 때 문구
 	g_window->draw(enemymess_text);
 
 	if (high_resolution_clock::now() < m_time_out_playerattackText) {
 		g_window->draw(playerattack_text);
 	}
+
+	if (high_resolution_clock::now() < m_time_out_killmonsterText) {
+		g_window->draw(killmonster_text);
+	}
+
+	g_window->draw(playerlevelup_text);
 }
 
 void send_packet(void* packet)
