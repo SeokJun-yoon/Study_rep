@@ -457,7 +457,7 @@ void is_player_level_up(int user_id)
 	}
 	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 	char mess[100];
-	sprintf_s(mess, "[ P%s ] Level [ %d ] -> Level [ %d ] !", g_clients[user_id].m_name, g_clients[user_id].m_level -1, g_clients[user_id].m_level);	// 킬 메시지 
+	sprintf_s(mess, "[ %s ] Level [ %d ] -> Level [ %d ] !", g_clients[user_id].m_name, g_clients[user_id].m_level -1, g_clients[user_id].m_level);	// 킬 메시지 
 	
 	for (int i = 0; i < UserCount; ++i)
 	{
@@ -832,7 +832,7 @@ void do_attack(int id)
 				is_npc_die(id, npc);
 
 				char mess[100];
-				sprintf_s(mess, "[ %s ] -> Attack -> [ %s ] (%d Damage).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_att);
+				sprintf_s(mess, "[ %s ] -> Attack -> [ %s ] ( %d Damage ).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_att);
 
 				// 내 주변 유저에게 B	roadCast
 				for (auto user : vl) 
@@ -979,8 +979,8 @@ void worker_thread()
 				nc.m_recv_over.wsabuf.buf = nc.m_recv_over.io_buf;
 				nc.m_recv_over.wsabuf.len = MAX_BUF_SIZE;
 				nc.m_s = c_socket;
-				nc.x = ((rand() % WORLD_WIDTH) % 10) + 10;
-				nc.y = ((rand() % WORLD_HEIGHT) % 10) + 10;
+				nc.x = ((rand() % WORLD_WIDTH) % 6) + 11;
+				nc.y = ((rand() % WORLD_HEIGHT) % 6) + 16;
 				nc.m_view_list.clear();
 				DWORD flags = 0;
 				WSARecv(c_socket, &nc.m_recv_over.wsabuf, 1, NULL, &flags, &nc.m_recv_over.over, NULL);

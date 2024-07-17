@@ -172,78 +172,6 @@ public:
 		Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
 		Hp_greenbar.setSize(sf::Vector2f(hpValue, 30));
 		g_window->draw(Hp_greenbar);
-
-		// maxhp = 50    | PLAYER_MAX_HP(100)  | hp = ?
-		// maxhp = 100	 | PLAYER_MAX_HP(100)  | hp = ? 
-		// maxhp = 150	 | PLAYER_MAX_HP(100)  | hp = ?
-
-
-		//if (id < NPC_ID_START || (id>=NPC2_ID_START && id<NPC3_ID_START))
-		//{
-		//	Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_redbar.setOutlineThickness(3.0f);
-		//	Hp_redbar.setOutlineColor(sf::Color::Black);
-		//	Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
-		//	Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
-		//	g_window->draw(Hp_redbar);
-
-		//	Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_greenbar.setOutlineThickness(3.0f);
-		//	Hp_greenbar.setOutlineColor(sf::Color::Black);
-		//	Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
-		//	Hp_greenbar.setSize(sf::Vector2f(a, 30));
-		//	g_window->draw(Hp_greenbar);
-		//}
-
-		//if (id >= NPC_ID_START && id < NPC2_ID_START)
-		//{
-		//	Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_redbar.setOutlineThickness(3.0f);
-		//	Hp_redbar.setOutlineColor(sf::Color::Black);
-		//	Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
-		//	Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
-		//	g_window->draw(Hp_redbar);
-
-		//	Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_greenbar.setOutlineThickness(3.0f);
-		//	Hp_greenbar.setOutlineColor(sf::Color::Black);
-		//	Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
-		//	Hp_greenbar.setSize(sf::Vector2f(a, 30));
-		//	g_window->draw(Hp_greenbar);
-		//}
-
-		//if (id >= NPC3_ID_START && id < QUEST_NPC_NUMBER)
-		//{
-		//	Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_redbar.setOutlineThickness(3.0f);
-		//	Hp_redbar.setOutlineColor(sf::Color::Black);
-		//	Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
-		//	Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
-		//	g_window->draw(Hp_redbar);
-
-		//	Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//	Hp_greenbar.setOutlineThickness(3.0f);
-		//	Hp_greenbar.setOutlineColor(sf::Color::Black);
-		//	Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
-		//	Hp_greenbar.setSize(sf::Vector2f(a, 30));
-		//	g_window->draw(Hp_greenbar);
-
-		//}
-
-
-		//Hp_redbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//Hp_redbar.setOutlineThickness(3.0f);
-		//Hp_redbar.setOutlineColor(sf::Color::Black);
-		//Hp_redbar.setFillColor(sf::Color(255, 0, 0, 100));
-		//Hp_redbar.setSize(sf::Vector2f(PLAYER_MAX_HP, 30));
-		//g_window->draw(Hp_redbar);
-
-		//Hp_greenbar.setPosition(sf::Vector2f(rx, ry - 50));
-		//Hp_greenbar.setOutlineThickness(3.0f);
-		//Hp_greenbar.setOutlineColor(sf::Color::Black);
-		//Hp_greenbar.setFillColor(sf::Color(0, 255, 0, 100));
-		//Hp_greenbar.setSize(sf::Vector2f(hp, 30));
-		//g_window->draw(Hp_greenbar);
 	}
 
 	void set_PlayerName(char str[]) {
@@ -258,35 +186,35 @@ public:
 	{
 		sf::Color color;
 
-		if (id < NPC_ID_START)
+		if (id < NPC_ID_START) // 플레이어 색
 		{
 			color.r = 255;
 			color.g = 255;
 			color.b = 255;
 		}
-		else if (id >= NPC_ID_START && id < NPC2_ID_START)
+		else if (id >= NPC_ID_START && id < NPC2_ID_START) // monster1 색
+		{
+			color.r = 153;
+			color.g = 255;
+			color.b = 153;
+		}
+		else if (id >= NPC2_ID_START && id < NPC3_ID_START) // monster2 색
+		{
+			color.r = 0;
+			color.g = 222;
+			color.b = 0;
+		}
+		else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER) // monster3 색
 		{
 			color.r = 255;
-			color.g = 0;
-			color.b = 0;
-		}
-		else if (id >= NPC2_ID_START && id < NPC3_ID_START)
-		{
-			color.r = 0;
-			color.g = 255;
-			color.b = 0;
-		}
-		else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER)
-		{
-			color.r = 0;
-			color.g = 0;
-			color.b = 255;
+			color.g = 204;
+			color.b = 051;
 		}
 		else
 		{
-			color.r = 255;
-			color.g = 255;
-			color.b = 0;
+			color.r = 0;
+			color.g = 222;
+			color.b = 222;
 		}
 		m_name.setFont(g_font);
 		m_name.setString(str);
@@ -322,7 +250,7 @@ public:
 		m_text.setFillColor(sf::Color(255, 0, 0));
 		m_text.setStyle(sf::Text::Bold);
 		m_text.setOutlineColor(sf::Color::Blue);
-		m_time_out = high_resolution_clock::now() + 1s;
+		m_time_out = high_resolution_clock::now() + 2s;
 	}
 
 	void display_userdata()
@@ -331,7 +259,7 @@ public:
 		userdata_text.setFont(g_font);
 		sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", id, hp, maxhp, exp, maxexp, level);
 		userdata_text.setString(buf);
-		userdata_text.setPosition(30, 0);
+		userdata_text.setPosition(30, 20);
 		userdata_text.setCharacterSize(42);
 		sf::Color color(255, 255, 255);
 		userdata_text.setFillColor(color);
@@ -580,25 +508,25 @@ void ProcessPacket(char* ptr)
 			switch (notice_color)
 			{
 			case 0:
-				color.r = 0;
-				color.g = 0;
-				color.b = 255;
+				color.r = 255;
+				color.g = 51;
+				color.b = 0;
 				break;
 			case 1:
 				color.r = 255;
-				color.g = 0;
-				color.b = 0;
+				color.g = 102;
+				color.b = 51;
 				break;
 			case 2:
-				color.r = 0;
-				color.g = 255;
-				color.b = 0;
+				color.r = 255;
+				color.g = 153;
+				color.b = 102;
 				break;
 			}
 			killmonster_text.setFillColor(color);
 			killmonster_text.setOutlineColor(sf::Color::Blue);
 			killmonster_text.setStyle(sf::Text::Underlined);
-			m_time_out_killmonsterText = high_resolution_clock::now() + 1s;
+			m_time_out_killmonsterText = high_resolution_clock::now() + 5s;
 		}
 
 		else if (mess_type == 1) // 플레이어가 공격했을 때
@@ -613,7 +541,7 @@ void ProcessPacket(char* ptr)
 			playerattack_text.setFillColor(color);
 			playerattack_text.setOutlineColor(sf::Color::Blue);
 			playerattack_text.setStyle(sf::Text::Underlined);
-			m_time_out_playerattackText = high_resolution_clock::now() + 1s;
+			m_time_out_playerattackText = high_resolution_clock::now() + 2s;
 		}
 
 		else if (mess_type == 2) // 적 발견 
@@ -639,19 +567,19 @@ void ProcessPacket(char* ptr)
 			switch (notice_color)
 			{
 			case 0:
-				color.r = 0;
-				color.g = 0;
+				color.r = 255;
+				color.g = 102;
 				color.b = 255;
 				break;
 			case 1:
-				color.r = 255;
-				color.g = 0;
-				color.b = 0;
-				break;
-			case 2:
 				color.r = 0;
 				color.g = 255;
-				color.b = 0;
+				color.b = 153;
+				break;
+			case 2:
+				color.r = 51;
+				color.g = 255;
+				color.b = 255;
 				break;
 			}
 			playerlevelup_text.setFillColor(color);
@@ -796,9 +724,9 @@ void client_main()
 	sf::Text coordinate_text;
 	coordinate_text.setFont(g_font);
 	char buf[100];
-	sprintf_s(buf, "Pos : (%d, %d)", avatar.m_x, avatar.m_y);
+	sprintf_s(buf, "Pos : ( %d, %d )", avatar.m_x, avatar.m_y);
 	coordinate_text.setString(buf);
-	coordinate_text.setPosition(30, 70);
+	coordinate_text.setPosition(30, 100);
 	coordinate_text.setCharacterSize(42);
 
 	g_window->draw(coordinate_text); // 좌표 데이터 ( pos)
@@ -884,7 +812,7 @@ int main()
 	send_packet(&m_packet);
 	//
 
-	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "2D CLIENT");
+	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "2D RPG");
 	g_window = &window;
 
 	sf::View view = g_window->getView();
