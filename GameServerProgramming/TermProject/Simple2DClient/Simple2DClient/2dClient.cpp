@@ -34,6 +34,8 @@ sf::Font g_font;
 bool login_ok = false;
 // Flags
 bool is_attack = false;
+float g_attacker_x;
+float g_attacker_y;
 
 sf::Text m_worldText[3];
 high_resolution_clock::time_point m_worldtime_out[3];
@@ -43,6 +45,8 @@ high_resolution_clock::time_point m_time_out_responText;
 
 high_resolution_clock::time_point m_time_out_playerattackText;
 high_resolution_clock::time_point m_time_out_killmonsterText;;
+
+high_resolution_clock::time_point m_time_out_attack;
 
 class OBJECT {
 private:
@@ -128,6 +132,25 @@ public:
 		m_y = y;
 	}
 
+	//void attack() {
+	//	float rx = (m_x - g_left_x) * 65.0f + 8;
+	//	float ry = (m_y - g_top_y) * 65.0f + 8;
+	//	if (is_monster_attack == true)
+	//	{
+	//		m_sprite_attack.setPosition(rx + TILE_WIDTH, ry);
+	//		g_window->draw(m_sprite_attack);
+
+	//		m_sprite_attack.setPosition(rx - TILE_WIDTH, ry);
+	//		g_window->draw(m_sprite_attack);
+
+	//		m_sprite_attack.setPosition(rx, ry + TILE_WIDTH);
+	//		g_window->draw(m_sprite_attack);
+
+	//		m_sprite_attack.setPosition(rx, ry - TILE_WIDTH);
+	//		g_window->draw(m_sprite_attack);
+	//	}
+	//}
+
 	void draw() {
 		if (false == m_showing) return;
 		if (maxhp <= 0) return;
@@ -142,19 +165,26 @@ public:
 			m_text.setPosition(rx - 10, ry + 15);
 			g_window->draw(m_text);
 		}
-		if (is_attack == true)
+		if (high_resolution_clock::now() < m_time_out_attack)
 		{
-			m_sprite_attack.setPosition(rx + TILE_WIDTH, ry);
-			g_window->draw(m_sprite_attack);
+			if (is_attack == true)
+			{
+				m_sprite_attack.setPosition(g_attacker_x + TILE_WIDTH, g_attacker_y);
+				g_window->draw(m_sprite_attack);
 
-			m_sprite_attack.setPosition(rx - TILE_WIDTH, ry);
-			g_window->draw(m_sprite_attack);
+				m_sprite_attack.setPosition(g_attacker_x - TILE_WIDTH, g_attacker_y);
+				g_window->draw(m_sprite_attack);
 
-			m_sprite_attack.setPosition(rx, ry + TILE_WIDTH);
-			g_window->draw(m_sprite_attack);
+				m_sprite_attack.setPosition(g_attacker_x, g_attacker_y + TILE_WIDTH);
+				g_window->draw(m_sprite_attack);
 
-			m_sprite_attack.setPosition(rx, ry - TILE_WIDTH);
-			g_window->draw(m_sprite_attack);
+				m_sprite_attack.setPosition(g_attacker_x, g_attacker_y - TILE_WIDTH);
+				g_window->draw(m_sprite_attack);
+			}
+		}
+		else 
+		{
+			is_attack = false;
 		}
 
 		float hpValue = PLAYER_MAX_HP * ((float)hp / (float)maxhp);
@@ -484,6 +514,22 @@ void ProcessPacket(char* ptr)
 				npcs[other_id].hp = 0;
 			}
 		}
+	}
+	break;
+
+	case S2C_ATTACK:
+	{
+		sc_packet_attack* my_packet = reinterpret_cast<sc_packet_attack*>(ptr);
+		int attacker_id = my_packet->id;
+		int attacker_x = my_packet->x;
+		int attacker_y = my_packet->y;
+		int attacker_attrange = my_packet->attackrange;
+
+		g_attacker_x = (attacker_x - g_left_x) * 65.0f + 8;
+		g_attacker_y = (attacker_y - g_top_y) * 65.0f + 8;
+
+		is_attack = true;
+		m_time_out_attack = high_resolution_clock::now() + 150ms;
 	}
 	break;
 
@@ -832,33 +878,36 @@ int main()
 				int p_type = -1;
 				switch (event.key.code) {
 				case sf::Keyboard::Left:
-					send_move_packet(D_LEFT);
+					if (is_attack == false) 
+					{
+						send_move_packet(D_LEFT);
+					}
 					break;
 				case sf::Keyboard::Right:
-					send_move_packet(D_RIGHT);
+					if (is_attack == false) 
+					{
+						send_move_packet(D_RIGHT);
+					}
 					break;
 				case sf::Keyboard::Up:
-					send_move_packet(D_UP);
+					if (is_attack == false) 
+					{
+						send_move_packet(D_UP);
+					}
 					break;
 				case sf::Keyboard::Down:
-					send_move_packet(D_DOWN);
+					if (is_attack == false)
+					{
+						send_move_packet(D_DOWN);
+					}
 					break;
 				case sf::Keyboard::A:
-					is_attack = true;
 					send_attack_packet();
 					break;
 				case sf::Keyboard::Escape:
 					window.close();
 
 					break;
-				}
-			}
-			if (event.type == sf::Event::KeyReleased)	// Å°¸¦ ¶¿ ¶§
-			{
-				switch (event.key.code)
-				{
-				case sf::Keyboard::A:
-					is_attack = false;
 				}
 			}
 		}

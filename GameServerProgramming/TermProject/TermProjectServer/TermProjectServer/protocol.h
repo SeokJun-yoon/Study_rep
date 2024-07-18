@@ -45,6 +45,7 @@ constexpr unsigned char D_RIGHT = 3;
 #define S2C_CHAT			5
 #define S2C_LOGIN_FAIL		6
 #define S2C_CHANGE_STATS	7
+#define S2C_ATTACK			8
 
 #define C2S_LOGIN	1
 #define C2S_MOVE	2
@@ -91,6 +92,14 @@ struct sc_packet_move {
 	int id;
 	short x, y;
 	unsigned move_time;
+};
+
+struct sc_packet_attack {
+	char size;
+	char type;
+	int id;
+	short x, y;
+	short attackrange;
 };
 
 struct sc_packet_enter {

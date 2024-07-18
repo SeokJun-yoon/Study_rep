@@ -403,6 +403,19 @@ void send_move_packet(int user_id, int mover)
 	send_packet(user_id, &p);
 }
 
+void send_attack_packet(int user_id, int attacker_id, int attacker_attackrange, int attacker_x, int attacker_y)
+{
+	sc_packet_attack p;
+	p.id = attacker_id;
+	p.size = sizeof(p);
+	p.type = S2C_ATTACK;
+	p.x = g_clients[attacker_id].x;
+	p.y = g_clients[attacker_id].y;
+	p.attackrange = g_clients[attacker_id].m_attackrange;
+
+	send_packet(user_id, &p);
+}
+
 void send_chat_packet(int user_id, int chatter, char* mess, int mess_type)
 {
 	sc_packet_chat p;
@@ -705,6 +718,8 @@ void do_move(int user_id, int direction)
 			}
 		}
 	}
+
+	// NPC <> 유저 충돌체크 함수
 }
 
 void random_move_npc(int id)
@@ -816,6 +831,18 @@ void do_attack(int id)
 	auto vl = g_clients[id].m_view_list;
 	g_clients[id].m_cl.unlock();
 
+	// 내가 공격했음을 내 주변 유저에게 알림
+	for (auto user : vl)
+	{
+		if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
+		{
+			send_attack_packet(g_clients[user].m_id, g_clients[id].m_id, g_clients[id].m_attackrange, g_clients[id].x, g_clients[id].y);
+		}
+	}
+
+	// 나에게 알림
+	send_attack_packet(g_clients[id].m_id, g_clients[id].m_id, g_clients[id].m_attackrange, g_clients[id].x, g_clients[id].y);
+
 	char mess[100];
 
 	for (auto npc : vl) {
@@ -834,7 +861,8 @@ void do_attack(int id)
 				char mess[100];
 				sprintf_s(mess, "[ %s ] -> Attack -> [ %s ] ( %d Damage ).", g_clients[id].m_name, g_clients[npc].m_name, g_clients[id].m_att);
 
-				// 내 주변 유저에게 B	roadCast
+
+				// 내 주변 유저에게 BroadCast
 				for (auto user : vl) 
 				{
 					if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
