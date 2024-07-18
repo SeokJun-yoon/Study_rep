@@ -327,7 +327,7 @@ void send_enter_packet(int user_id, int o_id)
 	p.id = o_id;
 	p.size = sizeof(p);
 	p.type = S2C_ENTER;
-	p.x = g_clients[o_id].x;
+	p.x = g_clients[o_id].x; 
 	p.y = g_clients[o_id].y;
 	p.level = g_clients[o_id].m_level;
 	p.hp = g_clients[o_id].m_hp;
@@ -359,7 +359,7 @@ void send_leave_packet(int user_id, int o_id)
 	send_packet(user_id, &p);
 }
 
-void send_stat_change_packet(int get_id, int set_id)
+void send_stat_change_packet(int get_id, int set_id, bool isRevive = false)
 {
 	// 몬스터 및 플레이어 스탯 정보 변경
 
@@ -373,6 +373,9 @@ void send_stat_change_packet(int get_id, int set_id)
 	p.maxhp = g_clients[set_id].m_maxhp;
 	p.exp = g_clients[set_id].m_exp;
 	p.att = g_clients[set_id].m_att;
+	p.isRevive = isRevive;
+	p.x = g_clients[set_id].x;
+	p.y = g_clients[set_id].y;
 
 	// Player만 사용
 	p.maxexp = g_clients[set_id].m_maxexp;
@@ -382,7 +385,6 @@ void send_stat_change_packet(int get_id, int set_id)
 	p.givenexp = g_clients[set_id].given_exp;
 
 	send_packet(get_id, &p);
-
 }
 
 void send_move_packet(int user_id, int mover)
@@ -600,6 +602,88 @@ void is_npc_die(int user_id, int npc_id)
 	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 }
 
+void check_user_hit(int id)
+{
+	g_clients[id].m_cl.lock();
+	auto vl = g_clients[id].m_view_list;
+	g_clients[id].m_cl.unlock();
+
+	for (auto npc : vl)		//viewlist 안의 npc 전체
+	{
+		if (g_clients[npc].m_id >= NPC_ID_START && g_clients[npc].m_id < QUEST_NPC_NUMBER)	// monster일 경우
+		{
+			if (g_clients[id].x == g_clients[npc].x && g_clients[id].y == g_clients[npc].y && g_clients[id].m_hp > 0)
+			{
+				g_clients[id].m_hp -= g_clients[npc].m_att;
+
+				if (g_clients[id].m_hp <= 0)
+				{
+					g_clients[id].m_hp = 0;
+					//g_clients[id].m_hp = g_clients[id].m_maxhp;
+					//g_clients[id].m_exp /= 2;
+					//g_clients[id].x = ((rand() % WORLD_WIDTH) % 6) + 11;
+					//g_clients[id].y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+				}
+
+				g_clients[id].m_cl.lock();
+				auto vl = g_clients[id].m_view_list;
+				g_clients[id].m_cl.unlock();
+
+				// 내 주변에게 알림
+				for (auto user : vl)
+				{
+					if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
+					{
+						send_stat_change_packet(user, g_clients[id].m_id);
+					}
+				}
+				// 나에게 알림
+				send_stat_change_packet(id, g_clients[id].m_id);
+			}
+		}
+	}
+}
+
+void check_monster_hit(int id) // monster가 이동할 때 피격 판정
+{
+	for (int i = 0; i < MAX_USER; ++i)
+	{
+		if (g_clients[i].m_status == ST_ACTIVE)
+		{
+			if (g_clients[id].x == g_clients[i].x && g_clients[id].y == g_clients[i].y && g_clients[i].m_hp > 0)
+			{
+				g_clients[i].m_hp -= g_clients[id].m_att;
+
+				if (g_clients[i].m_hp <= 0)
+				{
+					g_clients[i].m_hp = 0;
+					//g_clients[id].m_hp = g_clients[id].m_maxhp;
+					//g_clients[id].m_exp /= 2;
+					//g_clients[id].x = ((rand() % WORLD_WIDTH) % 6) + 11;
+					//g_clients[id].y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+				}
+
+				g_clients[i].m_cl.lock();
+				auto vl = g_clients[i].m_view_list;
+				g_clients[i].m_cl.unlock();
+
+				// 내 주변에게 알림
+				for (auto user : vl)
+				{
+					if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
+					{
+						send_stat_change_packet(user, g_clients[i].m_id);
+					}
+				}
+				
+				// 나에게 알림
+				send_stat_change_packet(i, g_clients[i].m_id);
+			}
+		}
+	}
+}
+
+
 
 void do_move(int user_id, int direction)
 {
@@ -719,7 +803,7 @@ void do_move(int user_id, int direction)
 		}
 	}
 
-	// NPC <> 유저 충돌체크 함수
+	check_user_hit(user_id);
 }
 
 void random_move_npc(int id)
@@ -759,6 +843,7 @@ void random_move_npc(int id)
 	}
 	g_clients[id].x = x;
 	g_clients[id].y = y;
+
 	for (int i = 0; i < NPC_ID_START; ++i)
 	{
 		if (ST_ACTIVE != g_clients[i].m_status) continue;
@@ -788,6 +873,8 @@ void random_move_npc(int id)
 				g_clients[i].m_cl.unlock();
 		}
 	}
+
+	check_monster_hit(id);
 }
 
 void enter_game(int user_id, char name[])
@@ -881,6 +968,31 @@ void do_attack(int id)
 
 }
 
+void do_revive(int id)
+{
+	g_clients[id].m_hp = g_clients[id].m_maxhp;
+	g_clients[id].m_exp /= 2;
+	g_clients[id].x = ((rand() % WORLD_WIDTH) % 6) + 11;
+	g_clients[id].y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+
+	g_clients[id].m_cl.lock();
+	auto vl = g_clients[id].m_view_list;
+	g_clients[id].m_cl.unlock();
+
+	// 내 주변 유저에게 BroadCast
+	for (auto user : vl)
+	{
+		if (g_clients[user].m_id >= 0 && g_clients[user].m_id < NPC_ID_START)
+		{
+			//send_chat_packet(g_clients[user].m_id, id, mess, 1);
+			send_stat_change_packet(g_clients[user].m_id, id, true);
+		}
+	}
+
+	// 나에게 알림
+	//send_chat_packet(g_clients[id].m_id, id, mess, 1);
+	send_stat_change_packet(g_clients[id].m_id, id, true);
+}
 
 void process_packet(int user_id, char* buf)
 {
@@ -900,8 +1012,15 @@ void process_packet(int user_id, char* buf)
 	case C2S_ATTACK: {
 		cs_packet_attack* packet = reinterpret_cast<cs_packet_attack*>(buf);
 		do_attack(user_id);
-		break;
 	}
+					 break;
+
+	case C2S_REVIVE: {
+		cs_packet_revive* packet = reinterpret_cast<cs_packet_revive*>(buf);
+		do_revive(user_id);
+	}
+					 break;
+
 	default:
 		cout << "Unknown Packet Type Error!\n";
 		DebugBreak();

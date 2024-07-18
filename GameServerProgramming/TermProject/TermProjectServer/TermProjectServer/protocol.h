@@ -52,6 +52,7 @@ constexpr unsigned char D_RIGHT = 3;
 #define C2S_ATTACK  3
 #define C2S_CHAT	4
 #define C2S_LOGOUT	5
+#define C2S_REVIVE	6
 
 char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 
@@ -144,6 +145,9 @@ struct sc_packet_stat_change {
 	int maxexp;
 	int attrange;
 	int givenexp;
+
+	bool isRevive;
+	int x, y;
 };
 
 struct cs_packet_login {
@@ -171,6 +175,11 @@ struct cs_packet_chat {
 };
 
 struct cs_packet_logout {
+	char	size;
+	char	type;
+};
+
+struct cs_packet_revive {
 	char	size;
 	char	type;
 };

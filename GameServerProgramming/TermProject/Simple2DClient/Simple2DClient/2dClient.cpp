@@ -36,6 +36,8 @@ bool login_ok = false;
 bool is_attack = false;
 float g_attacker_x;
 float g_attacker_y;
+bool is_player_die;
+bool is_player_die_command = true;
 
 sf::Text m_worldText[3];
 high_resolution_clock::time_point m_worldtime_out[3];
@@ -659,9 +661,31 @@ void ProcessPacket(char* ptr)
 			avatar.maxexp = my_packet->maxexp;
 			avatar.att = my_packet->att;
 			avatar.attrange = my_packet->attrange;
+			if (my_packet->isRevive == true)
+			{
+				avatar.m_x = my_packet->x;
+				avatar.m_y = my_packet->y;
+			}
 
 			avatar.display_userdata();
 			avatar.show();
+
+			if (avatar.hp <= 0)
+			{
+				is_player_die = true;
+				is_player_die_command = false;
+			}
+		}
+
+		if (id < NPC_ID_START)
+		{
+			npcs[id].level = my_packet->level;
+			npcs[id].hp = my_packet->hp;
+			npcs[id].maxhp = my_packet->maxhp;
+			npcs[id].exp = my_packet->givenexp;
+			npcs[id].att = my_packet->att;
+			npcs[id].m_x = my_packet->x;
+			npcs[id].m_y = my_packet->y;
 		}
 
 		if (NPC_ID_START < id && id < QUEST_NPC_NUMBER)
@@ -831,6 +855,14 @@ void send_logout_packet()
 	send_packet(&m_packet);
 }
 
+void send_revive_packet()
+{
+	cs_packet_logout m_packet;
+	m_packet.type = C2S_REVIVE;
+	m_packet.size = sizeof(m_packet);
+	send_packet(&m_packet);
+}
+
 int main()
 {
 	wcout.imbue(locale("korean"));
@@ -878,31 +910,48 @@ int main()
 				int p_type = -1;
 				switch (event.key.code) {
 				case sf::Keyboard::Left:
-					if (is_attack == false) 
+					if (is_attack == false && is_player_die == false)
 					{
 						send_move_packet(D_LEFT);
 					}
 					break;
 				case sf::Keyboard::Right:
-					if (is_attack == false) 
+					if (is_attack == false && is_player_die == false)
 					{
 						send_move_packet(D_RIGHT);
 					}
 					break;
 				case sf::Keyboard::Up:
-					if (is_attack == false) 
+					if (is_attack == false && is_player_die == false)
 					{
 						send_move_packet(D_UP);
 					}
 					break;
 				case sf::Keyboard::Down:
-					if (is_attack == false)
+					if (is_attack == false && is_player_die == false)
 					{
 						send_move_packet(D_DOWN);
 					}
 					break;
 				case sf::Keyboard::A:
-					send_attack_packet();
+					if (is_player_die == false)
+					{
+						send_attack_packet();
+					}
+					break;
+				case sf::Keyboard::R:	// ¼Ò»ý Å°
+ 					if (is_player_die_command == false)
+					{
+						is_player_die = false;
+						is_player_die_command = true;
+						send_revive_packet();
+					}
+					break;
+				case sf::Keyboard::Q:
+					if (is_player_die_command == false)
+					{
+						window.close();
+					}
 					break;
 				case sf::Keyboard::Escape:
 					window.close();
