@@ -38,6 +38,7 @@ float g_attacker_x;
 float g_attacker_y;
 bool is_player_die;
 bool is_player_die_command = true;
+bool delete_respawnmess = true;
 
 sf::Text m_worldText[3];
 high_resolution_clock::time_point m_worldtime_out[3];
@@ -46,7 +47,9 @@ sf::Text m_responText;
 high_resolution_clock::time_point m_time_out_responText;
 
 high_resolution_clock::time_point m_time_out_playerattackText;
-high_resolution_clock::time_point m_time_out_killmonsterText;;
+high_resolution_clock::time_point m_time_out_killmonsterText;
+high_resolution_clock::time_point m_time_out_playerdieText;
+high_resolution_clock::time_point m_time_out_playerlevelupText;
 
 high_resolution_clock::time_point m_time_out_attack;
 
@@ -381,6 +384,8 @@ sf::Text playerattack_text; // mess_type = 1
 sf::Text monsterdie_text;
 sf::Text enemymess_text;
 sf::Text playerlevelup_text; // mess_type = 3
+sf::Text playerrespawncheck_text; // mess_type = 4
+sf::Text playerdiemess_text; // mess_type = 5
 //sf::Text messdata2_text;
 
 void ProcessPacket(char* ptr)
@@ -535,7 +540,7 @@ void ProcessPacket(char* ptr)
 			sprintf_s(buf, my_packet->mess);
 			killmonster_text.setFont(g_font);
 			killmonster_text.setString(buf);
-			killmonster_text.setPosition(20, 1100);
+			killmonster_text.setPosition(30, 1100);
 			killmonster_text.setCharacterSize(40);
 			static int notice_color;
 			notice_color++;
@@ -571,7 +576,7 @@ void ProcessPacket(char* ptr)
 			sprintf_s(buf, my_packet->mess);
 			playerattack_text.setFont(g_font);
 			playerattack_text.setString(buf);
-			playerattack_text.setPosition(20, 1000);
+			playerattack_text.setPosition(30, 1000);
 			playerattack_text.setCharacterSize(40);
 			sf::Color color(255, 255, 255);
 			playerattack_text.setFillColor(color);
@@ -594,7 +599,7 @@ void ProcessPacket(char* ptr)
 			sprintf_s(buf, my_packet->mess);
 			playerlevelup_text.setFont(g_font);
 			playerlevelup_text.setString(buf);
-			playerlevelup_text.setPosition(20, 1200);
+			playerlevelup_text.setPosition(30, 1200);
 			playerlevelup_text.setCharacterSize(40);
 			static int notice_color;
 			notice_color++;
@@ -621,6 +626,57 @@ void ProcessPacket(char* ptr)
 			playerlevelup_text.setFillColor(color);
 			playerlevelup_text.setOutlineColor(sf::Color::Blue);
 			playerlevelup_text.setStyle(sf::Text::Underlined);
+			m_time_out_playerlevelupText = high_resolution_clock::now() + 5s;
+		}
+
+		else if (mess_type == 4)	// 죽은 플레이어 화면 중앙에 출력할 메시지 
+		{
+			char buf[100];
+			sprintf_s(buf, my_packet->mess);
+			playerrespawncheck_text.setFont(g_font);
+			playerrespawncheck_text.setString(buf);
+			playerrespawncheck_text.setPosition(20, 600);
+			playerrespawncheck_text.setCharacterSize(60);
+			sf::Color color(255, 0, 0);
+			playerrespawncheck_text.setFillColor(color);
+			playerrespawncheck_text.setOutlineColor(sf::Color::Blue);
+			delete_respawnmess = true;
+		}
+
+		else if (mess_type == 5) // 플레이어 Die message
+		{
+			char buf[100];
+			sprintf_s(buf, my_packet->mess);
+			playerdiemess_text.setFont(g_font);
+			playerdiemess_text.setString(buf);
+			playerdiemess_text.setPosition(30, 1200);
+			playerdiemess_text.setCharacterSize(40);
+			static int notice_color;
+			notice_color++;
+			notice_color = notice_color % 3;
+			sf::Color color;
+			switch (notice_color)
+			{
+			case 0:
+				color.r = 255;
+				color.g = 102;
+				color.b = 255;
+				break;
+			case 1:
+				color.r = 0;
+				color.g = 255;
+				color.b = 153;
+				break;
+			case 2:
+				color.r = 51;
+				color.g = 255;
+				color.b = 255;
+				break;
+			}
+			playerdiemess_text.setFillColor(color);
+			playerdiemess_text.setOutlineColor(sf::Color::Blue);
+			playerdiemess_text.setStyle(sf::Text::Underlined);
+			m_time_out_playerdieText = high_resolution_clock::now() + 5s;
 		}
 	}
 	break;
@@ -802,6 +858,11 @@ void client_main()
 	g_window->draw(userdata_text); // UI 상단의 userdata
 	g_window->draw(enemymess_text);
 
+	if (delete_respawnmess == true)
+	{
+		g_window->draw(playerrespawncheck_text);
+	}
+
 	if (high_resolution_clock::now() < m_time_out_playerattackText) {
 		g_window->draw(playerattack_text);
 	}
@@ -810,7 +871,14 @@ void client_main()
 		g_window->draw(killmonster_text);
 	}
 
-	g_window->draw(playerlevelup_text);
+	if (high_resolution_clock::now() < m_time_out_playerdieText) {
+		g_window->draw(playerdiemess_text);
+	}
+
+	if (high_resolution_clock::now() < m_time_out_playerlevelupText) {
+		g_window->draw(playerlevelup_text);
+	}
+
 }
 
 void send_packet(void* packet)
@@ -944,6 +1012,7 @@ int main()
 						is_player_die = false;
 						is_player_die_command = true;
 						send_revive_packet();
+						delete_respawnmess = false;
 					}
 					break;
 				case sf::Keyboard::Q:

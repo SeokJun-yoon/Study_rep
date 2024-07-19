@@ -31,10 +31,10 @@ using namespace chrono;
 #define PHONE_LEN 60
 
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
-enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 50, LEVEL2_MAX_EXP = 80, LEVEL3_MAX_EXP = 100};
+enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 20, LEVEL2_MAX_EXP = 40, LEVEL3_MAX_EXP = 60};
 enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 10, LEVEL2_ATT = 15, LEVEL3_ATT = 20 };
 enum MONSTER_MAX_HP { MON_LEVEL1_HP = 50, MON_LEVEL2_HP = 100, MON_LEVEL3_HP = 150 };
-enum MONSTER_ATTACK_DATA { MON_LEVEL1_ATT = 10, MON_LEVEL2_ATT = 15, MON_LEVEL3_ATT = 20 };
+enum MONSTER_ATTACK_DATA { MON_LEVEL1_ATT = 5, MON_LEVEL2_ATT = 10, MON_LEVEL3_ATT = 15 };
 enum MONSTER_GIVEN_EXP { MON_LEVEL1_EXP = 5, MON_LEVEL2_EXP = 8, MON_LEVEL3_EXP = 10 };
 
 struct event_type {
@@ -602,7 +602,7 @@ void is_npc_die(int user_id, int npc_id)
 	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 }
 
-void check_user_hit(int id)
+void check_user_hit(int id)	// 유저가 움직여서 부딪히는 경우
 {
 	g_clients[id].m_cl.lock();
 	auto vl = g_clients[id].m_view_list;
@@ -619,10 +619,21 @@ void check_user_hit(int id)
 				if (g_clients[id].m_hp <= 0)
 				{
 					g_clients[id].m_hp = 0;
-					//g_clients[id].m_hp = g_clients[id].m_maxhp;
-					//g_clients[id].m_exp /= 2;
-					//g_clients[id].x = ((rand() % WORLD_WIDTH) % 6) + 11;
-					//g_clients[id].y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+
+					// 본인에게 부활 여부 확인용 메시지 보내기
+					char mess[100];
+					sprintf_s(mess, "You died! Press 'R' to respawn. (Quit : Q)");
+
+					send_chat_packet(g_clients[id].m_id, id, mess, 4);
+
+					// 전체 클라이언트에게 Player die 전송
+					char mess2[100];
+					sprintf_s(mess2, "[ %s ] Die !", g_clients[id].m_name);
+
+					for (int j = 0; j < UserCount; ++j)
+					{
+						send_chat_packet(j, g_clients[id].m_id, mess2, 5);
+					}
 				}
 
 				g_clients[id].m_cl.lock();
@@ -644,7 +655,7 @@ void check_user_hit(int id)
 	}
 }
 
-void check_monster_hit(int id) // monster가 이동할 때 피격 판정
+void check_monster_hit(int id) // Monster가 이동해서 부딪힐 경우
 {
 	for (int i = 0; i < MAX_USER; ++i)
 	{
@@ -657,10 +668,21 @@ void check_monster_hit(int id) // monster가 이동할 때 피격 판정
 				if (g_clients[i].m_hp <= 0)
 				{
 					g_clients[i].m_hp = 0;
-					//g_clients[id].m_hp = g_clients[id].m_maxhp;
-					//g_clients[id].m_exp /= 2;
-					//g_clients[id].x = ((rand() % WORLD_WIDTH) % 6) + 11;
-					//g_clients[id].y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+
+					// 본인에게 부활 여부 확인용 메시지 보내기
+					char mess[100];
+					sprintf_s(mess, "You died! Press 'R' to respawn. (Quit : Q)");
+
+					send_chat_packet(g_clients[id].m_id, id, mess, 4);
+
+					// 전체 클라이언트에게 Player die 전송
+					char mess2[100];
+					sprintf_s(mess2, "[ %s ] Die !", g_clients[i].m_name);
+
+					for (int j = 0; j < UserCount; ++j)
+					{
+						send_chat_packet(j, id, mess2, 5);
+					}
 				}
 
 				g_clients[i].m_cl.lock();
@@ -979,6 +1001,8 @@ void do_revive(int id)
 	auto vl = g_clients[id].m_view_list;
 	g_clients[id].m_cl.unlock();
 
+	char mess[100];
+
 	// 나한테 주변 클라이언트 정보를 알려줌
 	for (auto &cl : g_clients)
 	{
@@ -1002,7 +1026,7 @@ void do_revive(int id)
 	}
 	
 	// 나에게 알림
-	//send_chat_packet(g_clients[id].m_id, id, mess, 1);
+	//send_chat_packet(g_clients[id].m_id, id, mess, 4);
 	send_stat_change_packet(g_clients[id].m_id, id, true);
 }
 
