@@ -394,7 +394,6 @@ void ProcessPacket(char* ptr)
 		g_myid = my_packet->id;
 
 		avatar.move(my_packet->x, my_packet->y);
-
 		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
 		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
 		avatar.id = my_packet->id;
@@ -405,18 +404,6 @@ void ProcessPacket(char* ptr)
 		avatar.maxhp = my_packet->maxhp;
 		
 		avatar.display_userdata();
-		//char buf[100];
-		//userdata_text.setFont(g_font);
-		//sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", avatar.id, avatar.hp, avatar.maxhp, avatar.exp, avatar.maxexp, avatar.level);
-
-		//userdata_text.setString(buf);
-		//userdata_text.setPosition(30, 0);
-		//userdata_text.setCharacterSize(42);
-		//sf::Color color(255, 255, 255);
-		//userdata_text.setFillColor(color);
-		//userdata_text.setOutlineColor(sf::Color::Blue);
-		//userdata_text.setStyle(sf::Text::Underlined);
-
 		avatar.show();
 
 		login_ok = true;
@@ -529,6 +516,7 @@ void ProcessPacket(char* ptr)
 
 		g_attacker_x = (attacker_x - g_left_x) * 65.0f + 8;
 		g_attacker_y = (attacker_y - g_top_y) * 65.0f + 8;
+
 
 		is_attack = true;
 		m_time_out_attack = high_resolution_clock::now() + 150ms;
@@ -661,10 +649,15 @@ void ProcessPacket(char* ptr)
 			avatar.maxexp = my_packet->maxexp;
 			avatar.att = my_packet->att;
 			avatar.attrange = my_packet->attrange;
+
 			if (my_packet->isRevive == true)
 			{
 				avatar.m_x = my_packet->x;
 				avatar.m_y = my_packet->y;
+				g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
+				g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
+
+				my_packet->isRevive = false;
 			}
 
 			avatar.display_userdata();
@@ -684,8 +677,12 @@ void ProcessPacket(char* ptr)
 			npcs[id].maxhp = my_packet->maxhp;
 			npcs[id].exp = my_packet->givenexp;
 			npcs[id].att = my_packet->att;
-			npcs[id].m_x = my_packet->x;
-			npcs[id].m_y = my_packet->y;
+			if (my_packet->isRevive == true)
+			{
+				npcs[id].m_x = my_packet->x;
+				npcs[id].m_y = my_packet->y;
+				/*npcs[id].show();*/
+			}
 		}
 
 		if (NPC_ID_START < id && id < QUEST_NPC_NUMBER)
@@ -695,6 +692,8 @@ void ProcessPacket(char* ptr)
 			npcs[id].maxhp = my_packet->maxhp;
 			npcs[id].exp = my_packet->givenexp;
 			npcs[id].att = my_packet->att;
+			npcs[id].m_x = my_packet->x; //
+			npcs[id].m_y = my_packet->y; //
 		}
 	}
 	break;

@@ -979,6 +979,18 @@ void do_revive(int id)
 	auto vl = g_clients[id].m_view_list;
 	g_clients[id].m_cl.unlock();
 
+	// 나한테 주변 클라이언트 정보를 알려줌
+	for (auto &cl : g_clients)
+	{
+		int i = cl.m_id;
+		if (id == i) continue;
+		if (true == is_near(id, i))
+		{
+			send_enter_packet(id, i);
+			send_enter_packet(i, id);
+		}
+	}
+
 	// 내 주변 유저에게 BroadCast
 	for (auto user : vl)
 	{
@@ -988,7 +1000,7 @@ void do_revive(int id)
 			send_stat_change_packet(g_clients[user].m_id, id, true);
 		}
 	}
-
+	
 	// 나에게 알림
 	//send_chat_packet(g_clients[id].m_id, id, mess, 1);
 	send_stat_change_packet(g_clients[id].m_id, id, true);
