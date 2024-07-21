@@ -947,12 +947,15 @@ int main()
 	cs_packet_login m_packet;
 	m_packet.type = C2S_LOGIN;
 	m_packet.size = sizeof(m_packet);
-	int t_id = GetCurrentProcessId();
-	char id[10];
-	cout << "Input ID : ";
-	cin >> id;
-	strcpy_s(m_packet.name, id);
-	sprintf_s(m_packet.name, "P%03d", t_id % 1000);
+	char name[10];
+	int loginType;
+	cout << "Press Key - [1] Create Account / [2] Login : ";
+	cin >> loginType;
+	cout << "Input name : ";
+	cin >> name;
+	
+	m_packet.loginType = loginType;
+	sprintf_s(m_packet.name, name);
 	avatar.set_PlayerName(m_packet.name);
 	send_packet(&m_packet);
 	//

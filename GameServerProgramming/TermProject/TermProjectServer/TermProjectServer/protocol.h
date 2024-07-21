@@ -154,6 +154,7 @@ struct cs_packet_login {
 	char	size;
 	char	type;
 	char	name[MAX_ID_LEN];
+	int		loginType;
 };
 
 struct cs_packet_move {

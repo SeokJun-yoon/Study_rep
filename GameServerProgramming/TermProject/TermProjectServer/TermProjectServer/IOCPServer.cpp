@@ -26,10 +26,6 @@ extern "C" {
 using namespace std;
 using namespace chrono;
 
-#define UNICODE  
-#define NAME_LEN 50  
-#define PHONE_LEN 60
-
 enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
 enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 20, LEVEL2_MAX_EXP = 40, LEVEL3_MAX_EXP = 60};
 enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 10, LEVEL2_ATT = 15, LEVEL3_ATT = 20 };
@@ -150,108 +146,212 @@ HANDLE g_iocp;
 SOCKET l_socket;
 atomic_int UserCount = 0;
 
-//void HandleDiagnosticRecord(SQLHANDLE hHandle, SQLSMALLINT hType, RETCODE RetCode)
-//{
-//	SQLSMALLINT iRec = 0;
-//	SQLINTEGER  iError;
-//	WCHAR      wszMessage[1000];
-//	WCHAR      wszState[SQL_SQLSTATE_SIZE + 1];
-//	if (RetCode == SQL_INVALID_HANDLE) {
-//		fwprintf(stderr, L"Invalid handle!\n");
-//		return;
-//	}
-//	while (SQLGetDiagRec(hType, hHandle, ++iRec, wszState, &iError, wszMessage,
-//		(SQLSMALLINT)(sizeof(wszMessage) / sizeof(WCHAR)), (SQLSMALLINT *)NULL) == SQL_SUCCESS) {
-//		// Hide data truncated..
-//		if (wcsncmp(wszState, L"01004", 5)) {
-//			fwprintf(stderr, L"[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
-//		}
-//	}
-//}
-//
-//void LoadDatabase(string inputID)
-//{
-//	SQLHENV henv;
-//	SQLHDBC hdbc;
-//	SQLHSTMT hstmt = 0;
-//	SQLRETURN retcode;
-//	SQLWCHAR CharacterName[NAME_LEN];
-//	SQLINTEGER CharacterID, CharacterLevel, CharacterExp;
-//	SQLLEN cbName = 0, cbID = 0, cbLevel = 0, cbExp = 0;
-//
-//	setlocale(LC_ALL, "korean");
-//
-//	// Allocate environment handle  
-//	retcode = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
-//
-//	// Set the ODBC version environment attribute  
-//	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
-//		retcode = SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER*)SQL_OV_ODBC3, 0);
-//
-//		// Allocate connection handle  
-//		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
-//			retcode = SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
-//
-//			// Set login timeout to 5 seconds  
-//			if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
-//				SQLSetConnectAttr(hdbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER)5, 0);
-//
-//				// Connect to data source  
-//				retcode = SQLConnect(hdbc, (SQLWCHAR*)L"game_db_odbc", SQL_NTS, (SQLWCHAR*)NULL, 0, NULL, 0);
-//
-//				// Allocate statement handle  
-//				if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
-//					cout << "ODBC Connect Okay!" << endl;
-//					retcode = SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
-//
-//					SQLWCHAR query[1024];
-//					wsprintf(query, L"EXEC LoadCharacterByName '%s'", inputID.c_str());
-//
-//					retcode = SQLExecDirect(hstmt, (SQLWCHAR *)L"query", SQL_NTS);
-//
-//					if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
-//					{
-//						cout << "Select Okay!" << endl;
-//						// Bind columns 1, 2, and 3  
-//						retcode = SQLBindCol(hstmt, 1, SQL_C_LONG, &CharacterID, 100, &cbID);
-//						retcode = SQLBindCol(hstmt, 2, SQL_C_WCHAR, &CharacterName, NAME_LEN, &cbName);
-//						retcode = SQLBindCol(hstmt, 3, SQL_C_LONG, &CharacterLevel, 100, &cbLevel);
-//						retcode = SQLBindCol(hstmt, 4, SQL_C_LONG, &CharacterExp, 100, &cbExp);
-//
-//						// Fetch and print each row of data. On an error, display a message and exit.  
-//						for (int i = 0; ; i++) {
-//							retcode = SQLFetch(hstmt);
-//							if (retcode == SQL_ERROR || retcode == SQL_SUCCESS_WITH_INFO)
-//								cout << "Error" << endl;
-//							if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
-//							{
-//								wprintf(L"Name:%s:, ID:%d, Level:%d, Exp:%d \n", i + 1, CharacterName, CharacterID, CharacterLevel, CharacterExp);
-//							}
-//							else
-//								break;
-//						}
-//					}
-//					else
-//					{
-//						cout << "Wrong Input ID" << endl;
-//					}
-//
-//					// Process data  
-//					if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
-//						SQLCancel(hstmt);
-//						SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
-//					}
-//
-//					SQLDisconnect(hdbc);
-//				}
-//
-//				SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
-//			}
-//		}
-//		SQLFreeHandle(SQL_HANDLE_ENV, henv);
-//	}
-//}
+// 데이터베이스
+const wchar_t* DSN_NAME = L"game_db_odbc";
+const int QUERY_BUFFER_SIZE = 1024;
+const int NAME_LEN = 50;
 
+// 진단 레코드 처리 함수
+void HandleDiagnosticRecord(SQLHANDLE hHandle, SQLSMALLINT hType, RETCODE RetCode)
+{
+	SQLSMALLINT iRec = 0;
+	SQLINTEGER iError;
+	WCHAR wszMessage[1000];
+	WCHAR wszState[SQL_SQLSTATE_SIZE + 1];
+	if (RetCode == SQL_INVALID_HANDLE) {
+		fwprintf(stderr, L"Invalid handle!\n");
+		return;
+	}
+	while (SQLGetDiagRec(hType, hHandle, ++iRec, wszState, &iError, wszMessage,
+		(SQLSMALLINT)(sizeof(wszMessage) / sizeof(WCHAR)), (SQLSMALLINT*)NULL) == SQL_SUCCESS) {
+		// 데이터가 잘린 경우는 숨김
+		if (wcsncmp(wszState, L"01004", 5)) {
+			fwprintf(stderr, L"[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+		}
+	}
+}
+
+// 데이터베이스 연결 함수
+SQLRETURN ConnectDatabase(SQLHENV& henv, SQLHDBC& hdbc, SQLHSTMT& hstmt)
+{
+	SQLRETURN retcode;
+	// 환경 핸들 할당
+	retcode = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv);
+	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+		// ODBC 버전 설정
+		retcode = SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER*)SQL_OV_ODBC3, 0);
+		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+			// 연결 핸들 할당
+			retcode = SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc);
+			if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+				// 로그인 타임아웃 설정
+				SQLSetConnectAttr(hdbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER)5, 0);
+				// 데이터 소스에 연결
+				retcode = SQLConnect(hdbc, (SQLWCHAR*)DSN_NAME, SQL_NTS, (SQLWCHAR*)NULL, 0, NULL, 0);
+				if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+					// 스테이트먼트 핸들 할당
+					retcode = SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt);
+				}
+			}
+		}
+	}
+	return retcode;
+}
+
+// 데이터베이스 연결 해제 함수
+void DisconnectDatabase(SQLHENV henv, SQLHDBC hdbc, SQLHSTMT hstmt)
+{
+	if (hstmt) {
+		SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+	}
+	if (hdbc) {
+		SQLDisconnect(hdbc);
+		SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+	}
+	if (henv) {
+		SQLFreeHandle(SQL_HANDLE_ENV, henv);
+	}
+}
+
+// 캐릭터 정보를 로드하는 함수
+void DB_LoadCharacter(int user_id, const wstring& inputName)
+{
+	SQLHENV henv = NULL;
+	SQLHDBC hdbc = NULL;
+	SQLHSTMT hstmt = NULL;
+	SQLRETURN retcode;
+
+	setlocale(LC_ALL, "korean");
+
+	retcode = ConnectDatabase(henv, hdbc, hstmt);
+	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) 
+	{
+		wcout << L"ODBC Connect Ok!" << endl;
+
+		// SQLWCHAR 배열에 SQL 쿼리 저장
+		SQLWCHAR query[1024];
+		swprintf(query, 1024, L"EXEC GAME.dbo.LoadCharacter '%s'", inputName.c_str());
+
+		// SQL 쿼리 실행
+		retcode = SQLExecDirect(hstmt, query, SQL_NTS);
+
+		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) {
+			wcout << L"SELECT OK!" << endl;
+
+			SQLWCHAR Name[NAME_LEN];
+			SQLINTEGER x, y, Level, AttackDamage, AttackRange, CurrExp, MaxExp, CurrHp, MaxHp;
+			SQLLEN cbName = 0, cbx = 0, cby = 0, cbLevel = 0, cbAttackDamage = 0, cbAttackRange = 0,
+				cbCurrExp = 0, cbMaxExp = 0, cbCurrHp = 0, cbMaxHp = 0;
+
+			// 컬럼 바인딩
+			SQLBindCol(hstmt, 1, SQL_C_WCHAR, &Name, NAME_LEN, &cbName);
+			SQLBindCol(hstmt, 2, SQL_C_LONG, &x, 0, &cbx);
+			SQLBindCol(hstmt, 3, SQL_C_LONG, &y, 0, &cby);
+			SQLBindCol(hstmt, 4, SQL_C_LONG, &Level, 0, &cbLevel);
+			SQLBindCol(hstmt, 5, SQL_C_LONG, &AttackDamage, 0, &cbAttackDamage);
+			SQLBindCol(hstmt, 6, SQL_C_LONG, &AttackRange, 0, &cbAttackRange);
+			SQLBindCol(hstmt, 7, SQL_C_LONG, &CurrExp, 0, &cbCurrExp);
+			SQLBindCol(hstmt, 8, SQL_C_LONG, &MaxExp, 0, &cbMaxExp);
+			SQLBindCol(hstmt, 9, SQL_C_LONG, &CurrHp, 0, &cbCurrHp);
+			SQLBindCol(hstmt, 10, SQL_C_LONG, &MaxHp, 0, &cbMaxHp);
+
+			// 데이터 가져오기
+			retcode = SQLFetch(hstmt);
+			if (retcode == SQL_NO_DATA)
+			{
+				wcout << L"No data found." << endl;
+			}
+			else if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) 
+			{
+				g_clients[user_id].x = x;
+				g_clients[user_id].y = y;
+				g_clients[user_id].m_level = Level;
+				g_clients[user_id].m_att = AttackDamage;
+				g_clients[user_id].m_attackrange = AttackRange;
+				g_clients[user_id].m_maxexp = MaxExp;
+				g_clients[user_id].m_maxhp = MaxHp;
+				g_clients[user_id].m_hp = CurrHp;
+
+				// 데이터 확인 출력 (선택 사항)
+				wprintf(L"Name: %s, Level: %d, Exp: %d, HP: %d/%d\n",
+					Name, Level, CurrExp, CurrHp, MaxHp);
+			}
+			else {
+				wcout << L"Error fetching data." << endl;
+				HandleDiagnosticRecord(hstmt, SQL_HANDLE_STMT, retcode);
+			}
+		}
+		else {
+			wcout << L"WRONG SQL" << endl;
+			HandleDiagnosticRecord(hstmt, SQL_HANDLE_STMT, retcode);
+		}
+
+		DisconnectDatabase(henv, hdbc, hstmt);
+	}
+	else {
+		wcout << L"Failed to connect to the database." << endl;
+		HandleDiagnosticRecord(hdbc, SQL_HANDLE_DBC, retcode);
+	}
+}
+
+void DB_CreateCharacter(const wstring& inputName)
+{
+	SQLHENV henv = NULL;
+	SQLHDBC hdbc = NULL;
+	SQLHSTMT hstmt = NULL;
+	SQLRETURN retcode;
+
+	setlocale(LC_ALL, "korean");
+
+	retcode = ConnectDatabase(henv, hdbc, hstmt);
+	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
+	{
+		wcout << L"ODBC Connect Ok!" << endl;
+
+		int x = ((rand() % WORLD_WIDTH) % 6) + 11;
+		int y = ((rand() % WORLD_HEIGHT) % 6) + 16;
+
+		// SQLWCHAR 배열에 SQL 쿼리 저장
+		SQLWCHAR query[1024];
+		swprintf(query, 1024, L"EXEC GAME.dbo.CreateCharacter '%s', %d, %d", inputName.c_str(), x, y);
+
+		// SQL 쿼리 실행
+		retcode = SQLExecDirect(hstmt, query, SQL_NTS);
+
+		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) 
+		{
+			wcout << L"INSERT OK!" << endl;
+		}
+		else 
+		{
+			wcout << L"WRONG SQL" << endl;
+			HandleDiagnosticRecord(hstmt, SQL_HANDLE_STMT, retcode);
+		}
+
+		DisconnectDatabase(henv, hdbc, hstmt);
+	}
+	else {
+		wcout << L"Failed to connect to the database." << endl;
+		HandleDiagnosticRecord(hdbc, SQL_HANDLE_DBC, retcode);
+	}
+}
+
+std::wstring CharArrayToWString(const char* charArray) 
+{
+	// char 배열의 길이를 계산
+	int length = static_cast<int>(strlen(charArray));
+
+	// 필요한 버퍼 크기를 계산 (最大 2배 길이)
+	int bufferSize = MultiByteToWideChar(CP_ACP, 0, charArray, length, NULL, 0);
+
+	// wstring을 담을 버퍼
+	std::wstring wstr(bufferSize, L'\0');
+
+	// 변환 수행
+	MultiByteToWideChar(CP_ACP, 0, charArray, length, &wstr[0], bufferSize);
+
+	return wstr;
+}
 
 // Timer
 void add_timer(int obj_id, ENUMOP op_type, int duration)
@@ -673,7 +773,7 @@ void check_monster_hit(int id) // Monster가 이동해서 부딪힐 경우
 					char mess[100];
 					sprintf_s(mess, "You died! Press 'R' to respawn. (Quit : Q)");
 
-					send_chat_packet(g_clients[id].m_id, id, mess, 4);
+					send_chat_packet(g_clients[i].m_id, i, mess, 4);
 
 					// 전체 클라이언트에게 Player die 전송
 					char mess2[100];
@@ -904,6 +1004,10 @@ void enter_game(int user_id, char name[])
 	g_clients[user_id].m_cl.lock();
 	strcpy_s(g_clients[user_id].m_name, name);
 	g_clients[user_id].m_name[MAX_ID_LEN] = NULL;
+
+	std::wstring wideName = CharArrayToWString(name);
+	DB_LoadCharacter(user_id, wideName);
+
 	send_login_ok_packet(user_id);
 	UserCount++;
 
@@ -1035,7 +1139,19 @@ void process_packet(int user_id, char* buf)
 	switch (buf[1]) {
 	case C2S_LOGIN: {
 		cs_packet_login* packet = reinterpret_cast<cs_packet_login*>(buf);
-		enter_game(user_id, packet->name);
+		switch (packet->loginType)
+		{
+		case 1:
+		{
+			std::wstring wideName = CharArrayToWString(packet->name);
+			DB_CreateCharacter(wideName);
+		}
+			break;
+
+		case 2:
+			enter_game(user_id, packet->name);
+			break;
+		}
 	}
 					break;
 	case C2S_MOVE: {
@@ -1389,22 +1505,10 @@ void init_npc()
 
 }
 
-void do_ai()
+void initialize_clients_DB(int id, int x, int y)
 {
-	while (true)
-	{
-		auto ai_start_time = high_resolution_clock::now();
-		for (int i = NPC_ID_START; i < NPC_ID_START + NUM_NPC; ++i)
-		{
-			if ((high_resolution_clock::now() - g_clients[i].m_last_move_time) > 1s)
-			{
-				random_move_npc(i);
-				g_clients[i].m_last_move_time = high_resolution_clock::now();
-			}
-		}
-		auto ai_time = high_resolution_clock::now() - ai_start_time;
-		cout << "AI Exec Time = " << duration_cast<milliseconds>(ai_time).count() << "ms\n";
-	}
+	g_clients[id].x = x;
+	g_clients[id].y = y;
 }
 
 void do_timer()
@@ -1451,13 +1555,6 @@ int main()
 	cout << "NPC Initialization finished.\n";
 	l_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 
-	//cout << endl;
-	//cout << "Input ID : ";
-	//string inputID;
-	//cin >> inputID;
-
-	//LoadDatabase(inputID);
-
 	SOCKADDR_IN s_address;
 	memset(&s_address, 0, sizeof(s_address));
 	s_address.sin_family = AF_INET;
@@ -1472,7 +1569,6 @@ int main()
 	init_map();
 	initialize_clients();
 
-
 	CreateIoCompletionPort(reinterpret_cast<HANDLE>(l_socket), g_iocp, 999, 0);
 	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	EXOVER accept_over;
@@ -1481,11 +1577,16 @@ int main()
 	accept_over.c_socket = c_socket;
 	AcceptEx(l_socket, c_socket, accept_over.io_buf, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &accept_over.over);
 
+	//cout << endl;
+	//cout << "Input ID : ";
+	//wstring inputID;
+	//wcout << L"Enter character name: ";
+	//getline(wcin, inputID);
+
+	//LoadCharacterByDB(inputID);
+
 	vector <thread> worker_threads;
 	for (int i = 0; i < 4; ++i) worker_threads.emplace_back(worker_thread);
-
-	//thread ai_thread{ do_ai };
-	//ai_thread.join();
 
 	thread timer_thread{ do_timer };
 	for (auto& th : worker_threads) th.join();
