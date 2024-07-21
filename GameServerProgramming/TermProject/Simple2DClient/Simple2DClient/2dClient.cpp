@@ -948,17 +948,19 @@ int main()
 	m_packet.type = C2S_LOGIN;
 	m_packet.size = sizeof(m_packet);
 	char name[10];
-	int loginType;
-	cout << "Press Key - [1] Create Account / [2] Login : ";
-	cin >> loginType;
-	cout << "Input name : ";
-	cin >> name;
-	
-	m_packet.loginType = loginType;
-	sprintf_s(m_packet.name, name);
-	avatar.set_PlayerName(m_packet.name);
-	send_packet(&m_packet);
-	//
+	int loginType = 1;
+	while (loginType == 1)
+	{
+		cout << "Press Key - [1] Create Account / [2] Login : ";
+		cin >> loginType;
+		cout << "Input name : ";
+		cin >> name;
+
+		m_packet.loginType = loginType;
+		sprintf_s(m_packet.name, name);
+		avatar.set_PlayerName(m_packet.name);
+		send_packet(&m_packet);
+	}
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "2D RPG");
 	g_window = &window;

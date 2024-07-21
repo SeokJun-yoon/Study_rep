@@ -6,6 +6,8 @@
 #define WORLD_WIDTH		800	// 맵 너비
 #define WORLD_HEIGHT	800	// 맵 높이
 
+#define PERIODICALLY_SAVE_TIME 60000 // 유저 데이터 저장 주기
+
 #define MAX_USER		3000	// 총 유저 수
 #define NUM_NPC			9000	// NPC 수
 #define NUMBER_OF_NPC_TYPES	3	// NPC 종류의 수

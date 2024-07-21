@@ -26,7 +26,7 @@ extern "C" {
 using namespace std;
 using namespace chrono;
 
-enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE };
+enum ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE, OP_CHECK_CONNECT_TIME};
 enum PLAYER_MAX_EXP { LEVEL1_MAX_EXP = 20, LEVEL2_MAX_EXP = 40, LEVEL3_MAX_EXP = 60};
 enum PLAYER_ATTACK_DATA { LEVEL1_ATT = 10, LEVEL2_ATT = 15, LEVEL3_ATT = 20 };
 enum MONSTER_MAX_HP { MON_LEVEL1_HP = 50, MON_LEVEL2_HP = 100, MON_LEVEL3_HP = 150 };
@@ -136,6 +136,8 @@ struct CLIENT {
 	// LUA
 	lua_State* L;
 	mutex lua_l;
+
+	high_resolution_clock::time_point m_last_connect_time;
 };
 
 // [ 전역 변수 ]
@@ -336,6 +338,62 @@ void DB_CreateCharacter(const wstring& inputName)
 	}
 }
 
+void DB_SaveCharacter(int user_id, const wstring& inputName)
+{
+	SQLHENV henv = NULL;
+	SQLHDBC hdbc = NULL;
+	SQLHSTMT hstmt = NULL;
+	SQLRETURN retcode;
+	SQLINTEGER x, y, Level, AttackDamage, AttackRange, CurrExp, MaxExp, CurrHp, MaxHp;
+	setlocale(LC_ALL, "korean");
+
+	retcode = ConnectDatabase(henv, hdbc, hstmt);
+	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
+	{
+		wcout << L"ODBC Connect Ok!" << endl;
+
+		x = g_clients[user_id].x;
+		y = g_clients[user_id].y;
+		Level = g_clients[user_id].m_level;
+		AttackDamage = g_clients[user_id].m_att;
+		AttackRange = g_clients[user_id].m_attackrange;
+		MaxExp = g_clients[user_id].m_maxexp;
+		CurrExp = g_clients[user_id].m_exp;
+		MaxHp = g_clients[user_id].m_maxhp;
+		CurrHp = g_clients[user_id].m_hp;
+
+		// 데이터 확인 출력 (선택 사항)
+		wprintf(L"Name: %s, Level: %d, Exp: %d / %d , HP: %d / %d \n",
+			inputName.c_str(), Level, CurrExp, MaxExp, CurrHp, MaxHp);
+
+
+		// SQLWCHAR 배열에 SQL 쿼리 저장
+		SQLWCHAR query[1024];
+		swprintf(query, 1024, L"EXEC GAME.dbo.SaveCharacter '%s', %d, %d, %d, %d, %d, %d, %d, %d, %d", 
+			inputName.c_str(), x, y, Level, AttackDamage, AttackRange, CurrExp, MaxExp, CurrHp, MaxHp);
+
+		// SQL 쿼리 실행
+		retcode = SQLExecDirect(hstmt, query, SQL_NTS);
+
+		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
+		{
+			wcout << L"SAVE OK!" << endl;
+		}
+		else
+		{
+			wcout << L"WRONG SQL" << endl;
+			HandleDiagnosticRecord(hstmt, SQL_HANDLE_STMT, retcode);
+		}
+
+		DisconnectDatabase(henv, hdbc, hstmt);
+	}
+	else {
+		wcout << L"Failed to connect to the database." << endl;
+		HandleDiagnosticRecord(hdbc, SQL_HANDLE_DBC, retcode);
+	}
+}
+
+
 std::wstring CharArrayToWString(const char* charArray) 
 {
 	// char 배열의 길이를 계산
@@ -352,6 +410,7 @@ std::wstring CharArrayToWString(const char* charArray)
 
 	return wstr;
 }
+
 
 // Timer
 void add_timer(int obj_id, ENUMOP op_type, int duration)
@@ -570,6 +629,10 @@ void is_player_level_up(int user_id)
 			cout << "Player Level Up!" << endl;
 		}
 	}
+
+	std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
+	DB_SaveCharacter(g_clients[user_id].m_id, wideName);
+
 	send_stat_change_packet(user_id, g_clients[user_id].m_id);
 	char mess[100];
 	sprintf_s(mess, "[ %s ] Level [ %d ] -> Level [ %d ] !", g_clients[user_id].m_name, g_clients[user_id].m_level -1, g_clients[user_id].m_level);	// 킬 메시지 
@@ -712,7 +775,8 @@ void check_user_hit(int id)	// 유저가 움직여서 부딪히는 경우
 	{
 		if (g_clients[npc].m_id >= NPC_ID_START && g_clients[npc].m_id < QUEST_NPC_NUMBER)	// monster일 경우
 		{
-			if (g_clients[id].x == g_clients[npc].x && g_clients[id].y == g_clients[npc].y && g_clients[id].m_hp > 0)
+			if (g_clients[id].x == g_clients[npc].x && g_clients[id].y == g_clients[npc].y &&
+				g_clients[id].m_hp > 0 && g_clients[npc].m_hp > 0)
 			{
 				g_clients[id].m_hp -= g_clients[npc].m_att;
 
@@ -761,7 +825,8 @@ void check_monster_hit(int id) // Monster가 이동해서 부딪힐 경우
 	{
 		if (g_clients[i].m_status == ST_ACTIVE)
 		{
-			if (g_clients[id].x == g_clients[i].x && g_clients[id].y == g_clients[i].y && g_clients[i].m_hp > 0)
+			if (g_clients[id].x == g_clients[i].x && g_clients[id].y == g_clients[i].y &&
+				g_clients[i].m_hp > 0 && g_clients[id].m_hp > 0)
 			{
 				g_clients[i].m_hp -= g_clients[id].m_att;
 
@@ -1004,12 +1069,18 @@ void enter_game(int user_id, char name[])
 	g_clients[user_id].m_cl.lock();
 	strcpy_s(g_clients[user_id].m_name, name);
 	g_clients[user_id].m_name[MAX_ID_LEN] = NULL;
-
+	
+	///////////////////////////////////////////////////////
+	// DB 로드 없이 실행 할 때 (주석 처리)
 	std::wstring wideName = CharArrayToWString(name);
 	DB_LoadCharacter(user_id, wideName);
-
+	///////////////////////////////////////////////////////
 	send_login_ok_packet(user_id);
 	UserCount++;
+
+	// 접속시간 저장 및 타이머 등록
+	g_clients[user_id].m_last_connect_time = high_resolution_clock::now();
+	add_timer(user_id, OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
 
 	g_clients[user_id].m_status = ST_ACTIVE;
 	g_clients[user_id].m_cl.unlock();
@@ -1184,6 +1255,12 @@ void process_packet(int user_id, char* buf)
 void disconnect(int user_id)
 {
 	send_leave_packet(user_id, user_id);
+
+	// TODO. SaveCharacter DB
+	// g_clients[user_id] > DB 테이블안에 들어가면 댐
+	// EXEC Game.dbo.SaveCharacter '%s', g_client[user_id].name
+	std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
+	DB_SaveCharacter(g_clients[user_id].m_id, wideName);
 
 	g_clients[user_id].m_cl.lock();
 	g_clients[user_id].m_status = ST_ALLOC;
@@ -1511,6 +1588,21 @@ void initialize_clients_DB(int id, int x, int y)
 	g_clients[id].y = y;
 }
 
+void Periodically_Save(int user_id) 
+{
+	auto now = high_resolution_clock::now();
+	auto duration = duration_cast<milliseconds>(now - g_clients[user_id].m_last_connect_time);
+	if (duration.count() >= PERIODICALLY_SAVE_TIME)
+	{
+		// 일정 주기 마다 호출할 함수
+		std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
+		DB_SaveCharacter(g_clients[user_id].m_id, wideName);
+
+		// 마지막 호출 시간을 갱신
+		g_clients[user_id].m_last_connect_time = now;
+	}
+}
+
 void do_timer()
 {
 	while (true)
@@ -1535,11 +1627,22 @@ void do_timer()
 			switch (ev.event_id)
 			{
 			case OP_RANDOM_MOVE:
-				EXOVER *over = new EXOVER;
-				over->op = ev.event_id;
-				PostQueuedCompletionStatus(g_iocp, 1, ev.obj_id, &over->over);
-				//random_move_npc(ev.obj_id);
-				//add_timer(ev.obj_id, ev.event_id, 1000);
+				{
+					EXOVER *over = new EXOVER;
+					over->op = ev.event_id;
+					PostQueuedCompletionStatus(g_iocp, 1, ev.obj_id, &over->over);
+					//random_move_npc(ev.obj_id);
+					//add_timer(ev.obj_id, ev.event_id, 1000);
+				}
+				break;
+
+			case OP_CHECK_CONNECT_TIME:
+				{
+					Periodically_Save(ev.obj_id);
+					// 180초(3분) 후 다시 타이머 추가
+					add_timer(ev.obj_id, OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
+				}
+				break;
 			}
 		}
 	}
@@ -1576,14 +1679,6 @@ int main()
 	accept_over.op = OP_ACCEPT;
 	accept_over.c_socket = c_socket;
 	AcceptEx(l_socket, c_socket, accept_over.io_buf, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &accept_over.over);
-
-	//cout << endl;
-	//cout << "Input ID : ";
-	//wstring inputID;
-	//wcout << L"Enter character name: ";
-	//getline(wcin, inputID);
-
-	//LoadCharacterByDB(inputID);
 
 	vector <thread> worker_threads;
 	for (int i = 0; i < 4; ++i) worker_threads.emplace_back(worker_thread);
