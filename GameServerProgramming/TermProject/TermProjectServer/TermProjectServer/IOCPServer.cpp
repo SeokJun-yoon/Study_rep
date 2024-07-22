@@ -453,14 +453,15 @@ void send_packet(int user_id, void* p)
 void send_login_ok_packet(int user_id)
 {
 	sc_packet_login_ok p;
+	p.size = sizeof(p);
+	p.type = S2C_LOGIN_OK;
+	strcpy_s(p.name, g_clients[user_id].m_name);
 	p.id = user_id;
 	p.level = g_clients[user_id].m_level;
 	p.exp = g_clients[user_id].m_exp;
 	p.maxexp = g_clients[user_id].m_maxexp;
 	p.hp = g_clients[user_id].m_hp;
 	p.maxhp = g_clients[user_id].m_maxhp;
-	p.size = sizeof(p);
-	p.type = S2C_LOGIN_OK;
 	p.x = g_clients[user_id].x;
 	p.y = g_clients[user_id].y;
 

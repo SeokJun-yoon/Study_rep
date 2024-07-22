@@ -292,9 +292,9 @@ public:
 	{
 		char buf[100];
 		userdata_text.setFont(g_font);
-		sprintf_s(buf, "[ ID : %dP ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", id, hp, maxhp, exp, maxexp, level);
+		sprintf_s(buf, "[ ID : %s ]  [ HP : %d / %d ]  [ EXP : %d / %d ]  [ Level : %d ]", name, hp, maxhp, exp, maxexp, level);
 		userdata_text.setString(buf);
-		userdata_text.setPosition(30, 20);
+		userdata_text.setPosition(10, 20);
 		userdata_text.setCharacterSize(42);
 		sf::Color color(255, 255, 255);
 		userdata_text.setFillColor(color);
@@ -407,7 +407,7 @@ void ProcessPacket(char* ptr)
 		avatar.maxexp = my_packet->maxexp;
 		avatar.hp = my_packet->hp;
 		avatar.maxhp = my_packet->maxhp;
-		
+		strcpy_s(avatar.name, my_packet->name);
 		avatar.display_userdata();
 		avatar.show();
 
@@ -851,7 +851,7 @@ void client_main()
 	char buf[100];
 	sprintf_s(buf, "Pos : ( %d, %d )", avatar.m_x, avatar.m_y);
 	coordinate_text.setString(buf);
-	coordinate_text.setPosition(30, 100);
+	coordinate_text.setPosition(10, 100);
 	coordinate_text.setCharacterSize(42);
 
 	g_window->draw(coordinate_text); // 좌표 데이터 ( pos)
