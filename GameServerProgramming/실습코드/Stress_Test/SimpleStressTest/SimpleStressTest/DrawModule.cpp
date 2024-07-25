@@ -149,8 +149,8 @@ int DrawGLScene(GLvoid)									// Here's Where We Do All The Drawing
 	{
 		float x, y, z;
 
-		x = points[i * 2] / 200.0f - 1.25f;
-		y = 1.25f - points[i * 2 + 1] / 200.0f;
+		x = points[i * 2] / 400.0f - 1.25f;
+		y = 1.25f - points[i * 2 + 1] / 400.0f;
 		z = -1.0f;
 		glVertex3f(x, y, z);
 	}
@@ -446,7 +446,7 @@ int WINAPI WinMain(HINSTANCE	hInstance,			// Instance
 	fullscreen = FALSE;							// Windowed Mode
 
 	// Create Our OpenGL Window
-	if (!CreateGLWindow(L"Stress Test Client", 640, 480, 16, fullscreen))
+	if (!CreateGLWindow(L"Stress Test Client", 800, 800, 16, fullscreen))
 	{
 		return 0;									// Quit If Window Was Not Created
 	}
@@ -485,7 +485,7 @@ int WINAPI WinMain(HINSTANCE	hInstance,			// Instance
 				KillGLWindow();						// Kill Our Current Window
 				fullscreen = !fullscreen;				// Toggle Fullscreen / Windowed Mode
 														// Recreate Our OpenGL Window
-				if (!CreateGLWindow(L"NeHe's Bitmap Font Tutorial", 640, 480, 16, fullscreen))
+				if (!CreateGLWindow(L"NeHe's Bitmap Font Tutorial", 800, 800, 16, fullscreen))
 				{
 					return 0;						// Quit If Window Was Not Created
 				}

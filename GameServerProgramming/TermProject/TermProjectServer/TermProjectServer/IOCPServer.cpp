@@ -919,10 +919,13 @@ void do_move(int user_id, int direction)
 	unordered_set<int> old_vl = g_clients[user_id].m_view_list;
 	g_clients[user_id].m_cl.unlock();
 	unordered_set<int> new_vl;	// 시야처리를 위한 viewlist를 set컨테이너로 선언
-	for (auto &cl : g_clients)	// 모든 클라이언트에 대해
+	for (auto &cl : g_clients)	
 	{
 		if (false == is_near(cl.m_id, user_id)) continue;
-		if (ST_SLEEP == cl.m_status) 	activate_npc(cl.m_id);
+		if (ST_SLEEP == cl.m_status)
+		{
+			activate_npc(cl.m_id);
+		}
 		if (ST_ACTIVE != cl.m_status) continue;
 		if (cl.m_id == user_id) continue;
 		if (false == is_player(cl.m_id))
@@ -939,23 +942,24 @@ void do_move(int user_id, int direction)
 
 	for (auto np : new_vl)	// np : new player
 	{
-		if (0 == old_vl.count(np))	// 이동하며 새로 보게 된 플레이어에 대한 처리 (Object가 새로 시야에 들어왔을 때)
+		if (0 == old_vl.count(np))	// 시야에 새로 들어온 오브젝트에 대한 처리
 		{
 			send_enter_packet(user_id, np);
 			if (false == is_player(np))	continue;
 			g_clients[np].m_cl.lock();
-			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대 viewlist에 내가 없을때
+			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대방 viewlist에 존재하지 않으면
 			{
 				g_clients[np].m_cl.unlock();
 				send_enter_packet(np, user_id);
 			}
-			else    // 상대 viewlist에 내가 있을 때
+			else    // 상대방 viewlist에 존재할 때
 			{
 				g_clients[np].m_cl.unlock();
 				send_move_packet(np, user_id);
 			}
 		}
-		else    // 이동하며 계속 보고 있었던 플레이어에 대한 처리 (계속 시야에 존재하고 있을 때)
+
+		else    // 시야에 머물고 있는 오브젝트에 대한 처리
 		{
 			if (false == is_player(np)) continue;
 			g_clients[np].m_cl.lock();
@@ -964,7 +968,7 @@ void do_move(int user_id, int direction)
 				g_clients[np].m_cl.unlock();
 				send_move_packet(np, user_id);
 			}
-			else  // 상대방의 시야에 내가 있는게 아니라면
+			else
 			{
 				g_clients[np].m_cl.unlock();
 				send_enter_packet(np, user_id);
@@ -972,7 +976,7 @@ void do_move(int user_id, int direction)
 		}
 	}
 
-	for (auto old_p : old_vl)		// Object가 시야에서 벗어났을 때
+	for (auto old_p : old_vl)	// 시야에서 벗어난 오브젝트에 대한 처리
 	{
 		if (0 == new_vl.count(old_p))
 		{
@@ -1093,7 +1097,6 @@ void enter_game(int user_id, char name[])
 		if (user_id == i) continue;
 		if (true == is_near(user_id, i))
 		{
-			//g_clients[i].m_cl.lock();
 			if (ST_SLEEP == g_clients[i].m_status)
 			{
 				activate_npc(i);
@@ -1104,7 +1107,6 @@ void enter_game(int user_id, char name[])
 				if (true == is_player(i))
 					send_enter_packet(i, user_id);
 			}
-			//g_clients[i].m_cl.unlock();
 			send_stat_change_packet(i, g_clients[user_id].m_id);
 		}
 	}
