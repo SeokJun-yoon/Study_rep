@@ -16,13 +16,13 @@
 #define NUM_NPC3		NUM_NPC / NUMBER_OF_NPC_TYPES
 
 #define NPC_ID_START	NUM_NPC / NUMBER_OF_NPC_TYPES	// NPC ID 구분
-#define NPC2_ID_START	NPC_ID_START + NUM_NPC1	//
-#define NPC3_ID_START	NPC2_ID_START + NUM_NPC2	//
-#define QUEST_NPC_NUMBER	MAX_USER + NUM_NPC  //12000
+#define NPC2_ID_START	NPC_ID_START + NUM_NPC1
+#define NPC3_ID_START	NPC2_ID_START + NUM_NPC2
+#define QUEST_NPC_NUMBER	MAX_USER + NUM_NPC  // 현재 설정 값 : 12000
 
-constexpr int MAX_ID_LEN = 10;	// 최대 ID 길이
-constexpr int MAX_STR_LEN = 100;  // string 최대 길이
-constexpr int VIEW_RADIUS = 8; // 시야 범위
+constexpr int MAX_ID_LEN = 10;		// 최대 ID 길이
+constexpr int MAX_STR_LEN = 100;	// string 최대 길이
+constexpr int VIEW_RADIUS = 8;		// 시야 범위
 
 constexpr auto MAX_PACKET_SIZE = 255; // 최대 패킷 사이즈
 constexpr auto MAX_BUF_SIZE = 1024;	// 최대 버퍼 사이즈
