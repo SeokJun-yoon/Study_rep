@@ -56,10 +56,10 @@ constexpr unsigned char D_RIGHT = 3;
 #define C2S_LOGOUT	5
 #define C2S_REVIVE	6
 
-char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
+extern char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 
-std::default_random_engine dre{ 9999 };
-std::uniform_int_distribution <> uid{ 0,5 };
+extern std::default_random_engine dre;
+extern std::uniform_int_distribution<> uid;
 
 #pragma pack(push ,1)
 
@@ -118,7 +118,7 @@ struct sc_packet_enter {
 	int	exp;
 	int att;
 	char name[MAX_ID_LEN];
-	char o_type;
+	int objectType;
 };
 
 struct sc_packet_leave {
@@ -148,6 +148,7 @@ struct sc_packet_stat_change {
 	int maxexp;
 	int attrange;
 	int givenexp;
+	int objectType;
 
 	bool isRevive;
 	int x, y;

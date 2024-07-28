@@ -20,6 +20,18 @@ constexpr auto TILE_WIDTH = 65;
 constexpr auto WINDOW_WIDTH = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;   // size of window
 constexpr auto WINDOW_HEIGHT = TILE_WIDTH * SCREEN_WIDTH / 2 + 10;
 constexpr auto BUF_SIZE = 200;
+
+// 오브젝트 타입구분을 위한 enum class
+enum class ObjectType { OT_Player, OT_Monster1, OT_Monster2, OT_Monster3, OT_NPC };
+
+
+// 변수 정의
+char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
+
+// 랜덤 엔진 및 분포 정의
+std::default_random_engine dre{ 9999 };
+std::uniform_int_distribution<> uid{ 0, 5 };
+
 //constexpr auto MAX_USER = NPC_ID_START;
 
 int g_left_x;
@@ -81,7 +93,7 @@ public:
 	int maxhp;
 	int att;
 	int attrange;
-
+	ObjectType Objecttype;
 	//// Hp bar 관련 변수
 	//int maxhp_rate = 0;
 
@@ -419,13 +431,14 @@ void ProcessPacket(char* ptr)
 	{
 		sc_packet_enter* my_packet = reinterpret_cast<sc_packet_enter*>(ptr);
 		int id = my_packet->id;
+		ObjectType objType = static_cast<ObjectType>(my_packet->objectType);
 
 		if (id == g_myid) {
 			avatar.move(my_packet->x, my_packet->y);
 			avatar.show();
 		}
 		else {
-			if (id < NPC_ID_START)	// id값이 플레이어 일 경우
+			if (objType == ObjectType::OT_Player)	// id값이 플레이어 일 경우
 			{
 				npcs[id] = OBJECT{ *player, 0, 0, 64, 64 };
 				npcs[id].level = my_packet->level;
@@ -433,8 +446,9 @@ void ProcessPacket(char* ptr)
 				npcs[id].maxhp = my_packet->maxhp;
 				npcs[id].exp = my_packet->exp;
 				npcs[id].maxexp = my_packet->maxexp;
+				npcs[id].Objecttype = static_cast<ObjectType>(my_packet->objectType);
 			}
-			else if (id >= NPC_ID_START && id < NPC2_ID_START) // id값이 monster1일 경우
+			else if (objType == ObjectType::OT_Monster1) // id값이 monster1일 경우
 			{
 				npcs[id] = OBJECT{ *monster1, 0, 0, 64, 64 };
 				npcs[id].level = my_packet->level;
@@ -442,8 +456,9 @@ void ProcessPacket(char* ptr)
 				npcs[id].maxhp = my_packet->maxhp;
 				npcs[id].exp = my_packet->exp;
 				npcs[id].maxexp = my_packet->maxexp;
+				npcs[id].Objecttype = static_cast<ObjectType>(my_packet->objectType);
 			}
-			else if (id >= NPC2_ID_START && id < NPC3_ID_START) // id값이 monster2일 경우
+			else if (objType == ObjectType::OT_Monster2) // id값이 monster2일 경우
 			{
 				npcs[id] = OBJECT{ *monster2, 0, 0, 64, 64 };
 				npcs[id].level = my_packet->level;
@@ -451,8 +466,9 @@ void ProcessPacket(char* ptr)
 				npcs[id].maxhp = my_packet->maxhp;
 				npcs[id].exp = my_packet->exp;
 				npcs[id].maxexp = my_packet->maxexp;
+				npcs[id].Objecttype = static_cast<ObjectType>(my_packet->objectType);
 			}
-			else if (id >= NPC3_ID_START && id < NUM_NPC + MAX_USER) // id값이 monster3일 경우
+			else if (objType == ObjectType::OT_Monster3) // id값이 monster3일 경우
 			{
 				npcs[id] = OBJECT{ *bossmonster, 0, 0, 64, 64 };
 				npcs[id].level = my_packet->level;
@@ -460,6 +476,7 @@ void ProcessPacket(char* ptr)
 				npcs[id].maxhp = my_packet->maxhp;
 				npcs[id].exp = my_packet->exp;
 				npcs[id].maxexp = my_packet->maxexp;
+				npcs[id].Objecttype = static_cast<ObjectType>(my_packet->objectType);
 			}
 			else // id값이 questnpc일 경우
 			{
@@ -469,6 +486,7 @@ void ProcessPacket(char* ptr)
 				npcs[id].maxhp = my_packet->maxhp;
 				npcs[id].exp = my_packet->exp;
 				npcs[id].maxexp = my_packet->maxexp;
+				npcs[id].Objecttype = static_cast<ObjectType>(my_packet->objectType);
 			}
 			strcpy_s(npcs[id].name, my_packet->name);
 			npcs[id].set_NpcName(my_packet->name, id);
@@ -695,6 +713,7 @@ void ProcessPacket(char* ptr)
 	{
 		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
 		int id = my_packet->id;
+		ObjectType objType = static_cast<ObjectType>(my_packet->objectType);
 
 		if (id == g_myid)
 		{
@@ -726,7 +745,7 @@ void ProcessPacket(char* ptr)
 			}
 		}
 
-		if (id < NPC_ID_START)
+		if (objType == ObjectType::OT_Player)
 		{
 			npcs[id].level = my_packet->level;
 			npcs[id].hp = my_packet->hp;
@@ -741,7 +760,8 @@ void ProcessPacket(char* ptr)
 			}
 		}
 
-		if (NPC_ID_START < id && id < QUEST_NPC_NUMBER)
+		if (objType == ObjectType::OT_Monster1 || objType == ObjectType::OT_Monster2
+			|| objType == ObjectType::OT_Monster3)
 		{
 			npcs[id].level = my_packet->level;
 			npcs[id].hp = my_packet->hp;
