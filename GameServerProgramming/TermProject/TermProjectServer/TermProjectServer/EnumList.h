@@ -1,6 +1,6 @@
 #pragma once
 
-enum class ENUMOP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE, OP_CHECK_CONNECT_TIME };
+enum class WORKER_OP { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDOM_MOVE, OP_PLAYER_MOVE, OP_CHECK_CONNECT_TIME, OP_DB_LOAD_CHARACTER_SUCCESS };
 
 enum class ObjectType { OT_Player, OT_Monster1, OT_Monster2, OT_Monster3, OT_NPC };
 enum class ObjectStatus { OS_Free, OS_Alloc, OS_Active, OS_Sleep };

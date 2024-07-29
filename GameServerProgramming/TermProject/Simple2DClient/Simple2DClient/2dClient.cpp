@@ -412,22 +412,30 @@ void ProcessPacket(char* ptr)
 	case S2C_Packet::S2C_LOGIN_OK:
 	{
 		sc_packet_login_ok* my_packet = reinterpret_cast<sc_packet_login_ok*>(ptr);
-		g_myid = my_packet->id;
 
-		avatar.move(my_packet->x, my_packet->y);
-		g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
-		g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
-		avatar.id = my_packet->id;
-		avatar.level = my_packet->level;
-		avatar.exp = my_packet->exp;
-		avatar.maxexp = my_packet->maxexp;
-		avatar.hp = my_packet->hp;
-		avatar.maxhp = my_packet->maxhp;
-		strcpy_s(avatar.name, my_packet->name);
-		avatar.display_userdata();
-		avatar.show();
+		if (my_packet->IsLoginOK == true)
+		{
+			g_myid = my_packet->id;
 
-		login_ok = true;
+			avatar.move(my_packet->x, my_packet->y);
+			g_left_x = my_packet->x - (SCREEN_WIDTH / 2);
+			g_top_y = my_packet->y - (SCREEN_HEIGHT / 2);
+			avatar.id = my_packet->id;
+			avatar.level = my_packet->level;
+			avatar.exp = my_packet->exp;
+			avatar.maxexp = my_packet->maxexp;
+			avatar.hp = my_packet->hp;
+			avatar.maxhp = my_packet->maxhp;
+			strcpy_s(avatar.name, my_packet->name);
+			avatar.display_userdata();
+			avatar.show();
+
+			login_ok = true;
+		}
+		else
+		{
+			cout << "유효하지 않은 ID 입니다." << endl;
+		}
 	}
 	break;
 
@@ -857,52 +865,51 @@ void client_main()
 				}
 			}
 		}
+
+		avatar.draw();
+
+		for (auto& npc : npcs)
+		{
+			npc.second.draw();
+			if (npc.second.hp <= 0)
+				npc.second.hide();
+			else
+				npc.second.show();
+		}
+
+		sf::Text coordinate_text;
+		coordinate_text.setFont(g_font);
+		char buf[100];
+		sprintf_s(buf, "Pos : ( %d, %d )", avatar.m_x, avatar.m_y);
+		coordinate_text.setString(buf);
+		coordinate_text.setPosition(10, 100);
+		coordinate_text.setCharacterSize(42);
+
+		g_window->draw(coordinate_text); // 좌표 데이터 ( pos)
+		g_window->draw(userdata_text); // UI 상단의 userdata
+		g_window->draw(enemymess_text);
+
+		if (delete_respawnmess == true)
+		{
+			g_window->draw(playerrespawncheck_text);
+		}
+
+		if (high_resolution_clock::now() < m_time_out_playerattackText) {
+			g_window->draw(playerattack_text);
+		}
+
+		if (high_resolution_clock::now() < m_time_out_killmonsterText) {
+			g_window->draw(killmonster_text);
+		}
+
+		if (high_resolution_clock::now() < m_time_out_playerdieText) {
+			g_window->draw(playerdiemess_text);
+		}
+
+		if (high_resolution_clock::now() < m_time_out_playerlevelupText) {
+			g_window->draw(playerlevelup_text);
+		}
 	}
-
-	avatar.draw();
-
-	for (auto& npc : npcs)
-	{
-		npc.second.draw();
-		if (npc.second.hp <= 0)
-			npc.second.hide();
-		else
-			npc.second.show();
-	}
-
-	sf::Text coordinate_text;
-	coordinate_text.setFont(g_font);
-	char buf[100];
-	sprintf_s(buf, "Pos : ( %d, %d )", avatar.m_x, avatar.m_y);
-	coordinate_text.setString(buf);
-	coordinate_text.setPosition(10, 100);
-	coordinate_text.setCharacterSize(42);
-
-	g_window->draw(coordinate_text); // 좌표 데이터 ( pos)
-	g_window->draw(userdata_text); // UI 상단의 userdata
-	g_window->draw(enemymess_text);
-
-	if (delete_respawnmess == true)
-	{
-		g_window->draw(playerrespawncheck_text);
-	}
-
-	if (high_resolution_clock::now() < m_time_out_playerattackText) {
-		g_window->draw(playerattack_text);
-	}
-
-	if (high_resolution_clock::now() < m_time_out_killmonsterText) {
-		g_window->draw(killmonster_text);
-	}
-
-	if (high_resolution_clock::now() < m_time_out_playerdieText) {
-		g_window->draw(playerdiemess_text);
-	}
-
-	if (high_resolution_clock::now() < m_time_out_playerlevelupText) {
-		g_window->draw(playerlevelup_text);
-	}
-
 }
 
 void send_packet(void* packet)

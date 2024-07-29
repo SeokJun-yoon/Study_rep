@@ -7,7 +7,7 @@ namespace PacketManager
 {
 	void SendPacket(Client* clients, int userID, void* p);
 
-	void SendLoginSuccessPacket(Client* clients, int userID);
+	void SendLoginSuccessPacket(Client* clients, int userID, bool IsLoginOK);
 	void SendLoginFailPacket(Client* clients, int userID);
 
 	void SendEnterPacket(Client* clients, int userID, int otherID);

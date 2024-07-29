@@ -14,6 +14,26 @@
 using namespace std;
 using namespace chrono;
 
+// DB Thread
+enum class DB_OP {
+	DB_OP_LOAD,
+	DB_OP_CREATE,
+	DB_OP_SAVE
+};
+
+struct DB_TASK
+{
+	DB_OP op_type;
+	int user_id;
+	wstring inputName;
+};
+
+std::queue<DB_TASK> db_task_queue;
+std::mutex db_task_mutex;
+
+void AddDBTask(const DB_TASK& task);
+// DB Thread
+
 priority_queue<EventType> timer_queue;
 mutex timer_lock;
 
@@ -21,6 +41,7 @@ Client g_clients[MAX_USER + NUM_NPC + 1];
 HANDLE g_iocp;
 SOCKET l_socket;
 atomic_int UserCount = 0;
+bool IsLoginOK = false;
 
 // 타일맵 구성을 위한 이차원 배열 선언
 char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
@@ -29,7 +50,7 @@ char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 std::default_random_engine dre{ 9999 };
 std::uniform_int_distribution<> uid{ 0, 5 };
 
-std::wstring CharArrayToWString(const char* charArray) 
+std::wstring CharArrayToWString(const char* charArray)
 {
 	// char 배열의 길이를 계산
 	int length = static_cast<int>(strlen(charArray));
@@ -48,10 +69,10 @@ std::wstring CharArrayToWString(const char* charArray)
 
 
 // Timer
-void AddTimer(int obj_id, ENUMOP op_type, int duration)
+void AddTimer(int obj_id, WORKER_OP op_type, int duration)
 {
 	timer_lock.lock();
-	EventType ev{ obj_id, 0, op_type, high_resolution_clock::now() + milliseconds(duration)};
+	EventType ev{ obj_id, 0, op_type, high_resolution_clock::now() + milliseconds(duration) };
 	timer_queue.push(ev);
 	timer_lock.unlock();
 }
@@ -73,7 +94,7 @@ void ActivateNPC(int id)
 	g_clients[id].is_active = true;
 	ObjectStatus old_state = ObjectStatus::OS_Sleep;
 	if (true == atomic_compare_exchange_strong(&g_clients[id].m_status, &old_state, ObjectStatus::OS_Active))
-		AddTimer(id, ENUMOP::OP_RANDOM_MOVE, 1000);
+		AddTimer(id, WORKER_OP::OP_RANDOM_MOVE, 1000);
 }
 
 void PlayerLevelUp(int user_id)
@@ -109,7 +130,12 @@ void PlayerLevelUp(int user_id)
 	}
 
 	std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
-	DB::DB_SaveCharacter(g_clients, g_clients[user_id].m_id, wideName, DSN_NAME);
+
+	DB_TASK db_data;
+	db_data.op_type = DB_OP::DB_OP_SAVE;
+	db_data.user_id = g_clients[user_id].m_id;
+	db_data.inputName = wideName;
+	AddDBTask(db_data);
 
 	PacketManager::SendStatChangePacket(g_clients, user_id, g_clients[user_id].m_id);
 
@@ -125,7 +151,7 @@ void PlayerLevelUp(int user_id)
 
 void IsNPCDead(int user_id, int npc_id)
 {
-	if (g_clients[npc_id].objectType==ObjectType::OT_Monster1)	// monster1 을 잡았을 때,
+	if (g_clients[npc_id].objectType == ObjectType::OT_Monster1)	// monster1 을 잡았을 때,
 	{
 		if ((g_clients[npc_id].m_hp <= 0) && (g_clients[npc_id].is_active == true))
 		{
@@ -405,7 +431,7 @@ void DoMove(int user_id, int direction)
 		if (false == IsPlayer(cl.m_id))
 		{
 			ExOver* over = new ExOver;
-			over->op = ENUMOP::OP_PLAYER_MOVE;
+			over->op = WORKER_OP::OP_PLAYER_MOVE;
 			over->p_id = user_id;
 			PostQueuedCompletionStatus(g_iocp, 1, cl.m_id, &over->over);
 		}
@@ -446,7 +472,7 @@ void DoMove(int user_id, int direction)
 
 				PacketManager::SendMovePacket(g_clients, np, user_id);
 			}
-			else  
+			else
 			{
 				g_clients[np].m_cl.unlock();
 				PacketManager::SendEnterPacket(g_clients, np, user_id);
@@ -557,39 +583,46 @@ void EnterGame(int user_id, char name[])
 	///////////////////////////////////////////////////////
 	// DB 로드 없이 실행 할 때 (주석 처리)
 	std::wstring wideName = CharArrayToWString(name);
-	DB::DB_LoadCharacter(g_clients, user_id, wideName, NAME_LEN, DSN_NAME);
-	///////////////////////////////////////////////////////
-	PacketManager::SendLoginSuccessPacket(g_clients, user_id);
-	UserCount++;
+	//DB::DB_LoadCharacter(g_clients, user_id, wideName, NAME_LEN, DSN_NAME);
 
-	// 접속시간 저장 및 타이머 등록
-	g_clients[user_id].m_last_connect_time = high_resolution_clock::now();
-	AddTimer(user_id, ENUMOP::OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
+	DB_TASK db_data;
+	db_data.op_type = DB_OP::DB_OP_LOAD;
+	db_data.user_id = user_id;
+	db_data.inputName = wideName;
+	AddDBTask(db_data);
 
-	g_clients[user_id].m_status = ObjectStatus::OS_Active;
 	g_clients[user_id].m_cl.unlock();
+	///////////////////////////////////////////////////////
+	//PacketManager::SendLoginSuccessPacket(g_clients, user_id);
+	//UserCount++;
 
+	//// 접속시간 저장 및 타이머 등록
+	//g_clients[user_id].m_last_connect_time = high_resolution_clock::now();
+	//AddTimer(user_id, WORKER_OP::OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
 
-	for (auto &cl : g_clients)
-	{
-		int i = cl.m_id;
-		if (user_id == i) continue;
-		if (true == IsNear(user_id, i))
-		{
-			if (ObjectStatus::OS_Sleep == g_clients[i].m_status)
-			{
-				ActivateNPC(i);
-			}
-			if (ObjectStatus::OS_Active == g_clients[i].m_status)
-			{
-				PacketManager::SendEnterPacket(g_clients, user_id, i);
-				if (true == IsPlayer(i))
-					PacketManager::SendEnterPacket(g_clients, i, user_id);
-			}
+	//g_clients[user_id].m_status = ObjectStatus::OS_Active;
+	//g_clients[user_id].m_cl.unlock();
+	//
+	//for (auto &cl : g_clients)
+	//{
+	//	int i = cl.m_id;
+	//	if (user_id == i) continue;
+	//	if (true == IsNear(user_id, i))
+	//	{
+	//		if (ObjectStatus::OS_Sleep == g_clients[i].m_status)
+	//		{
+	//			ActivateNPC(i);
+	//		}
+	//		if (ObjectStatus::OS_Active == g_clients[i].m_status)
+	//		{
+	//			PacketManager::SendEnterPacket(g_clients, user_id, i);
+	//			if (true == IsPlayer(i))
+	//				PacketManager::SendEnterPacket(g_clients, i, user_id);
+	//		}
 
-			PacketManager::SendStatChangePacket(g_clients, i, g_clients[user_id].m_id);
-		}
-	}
+	//		PacketManager::SendStatChangePacket(g_clients, i, g_clients[user_id].m_id);
+	//	}
+	//}	
 }
 
 void DoAttack(int id)
@@ -698,7 +731,12 @@ void ProcessPacket(int user_id, char* buf)
 		case 1:
 		{
 			std::wstring wideName = CharArrayToWString(packet->name);
-			DB::DB_CreateCharacter(wideName, DSN_NAME);
+
+			DB_TASK db_data;
+			db_data.op_type = DB_OP::DB_OP_CREATE;
+			db_data.user_id = 0;
+			db_data.inputName = wideName;
+			AddDBTask(db_data);
 		}
 		break;
 
@@ -707,25 +745,25 @@ void ProcessPacket(int user_id, char* buf)
 			break;
 		}
 	}
-					break;
+								break;
 	case C2S_Packet::C2S_MOVE: {
 		cs_packet_move* packet = reinterpret_cast<cs_packet_move*>(buf);
 		g_clients[user_id].m_move_time = packet->move_time;
 		DoMove(user_id, packet->direction);
 	}
-				   break;
+							   break;
 
 	case C2S_Packet::C2S_ATTACK: {
 		cs_packet_attack* packet = reinterpret_cast<cs_packet_attack*>(buf);
 		DoAttack(user_id);
 	}
-					 break;
+								 break;
 
 	case C2S_Packet::C2S_REVIVE: {
 		cs_packet_revive* packet = reinterpret_cast<cs_packet_revive*>(buf);
 		DoRevive(user_id);
 	}
-					 break;
+								 break;
 
 	default:
 		cout << "Unknown Packet Type Error!\n";
@@ -742,7 +780,12 @@ void Disconnect(int user_id)
 	// g_clients[user_id] > DB 테이블안에 들어가면 댐
 	// EXEC Game.dbo.SaveCharacter '%s', g_client[user_id].name
 	std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
-	DB::DB_SaveCharacter(g_clients, g_clients[user_id].m_id, wideName, DSN_NAME);
+
+	DB_TASK db_data;
+	db_data.op_type = DB_OP::DB_OP_SAVE;
+	db_data.user_id = g_clients[user_id].m_id;
+	db_data.inputName = wideName;
+	AddDBTask(db_data);
 
 	g_clients[user_id].m_cl.lock();
 	g_clients[user_id].m_status = ObjectStatus::OS_Alloc;
@@ -799,7 +842,7 @@ void WorkerThread()
 		Client& cl = g_clients[user_id];
 
 		switch (exover->op) {
-		case ENUMOP::OP_RECV:
+		case WORKER_OP::OP_RECV:
 			if (0 == io_byte) Disconnect(user_id);
 			else {
 				RecvPacketConstruct(user_id, io_byte);
@@ -808,11 +851,11 @@ void WorkerThread()
 				WSARecv(cl.m_s, &cl.m_recv_over.wsabuf, 1, NULL, &flags, &cl.m_recv_over.over, NULL);
 			}
 			break;
-		case ENUMOP::OP_SEND:
+		case WORKER_OP::OP_SEND:
 			if (0 == io_byte) Disconnect(user_id);
 			delete exover;
 			break;
-		case ENUMOP::OP_ACCEPT: {
+		case WORKER_OP::OP_ACCEPT: {
 			int user_id = -1;
 			for (int i = 0; i < MAX_USER; ++i) {
 				lock_guard<mutex> gl{ g_clients[i].m_cl };
@@ -830,7 +873,7 @@ void WorkerThread()
 				CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), g_iocp, user_id, 0);
 				Client& nc = g_clients[user_id];
 				nc.m_prev_size = 0;
-				nc.m_recv_over.op = ENUMOP::OP_RECV;
+				nc.m_recv_over.op = WORKER_OP::OP_RECV;
 				ZeroMemory(&nc.m_recv_over.over, sizeof(nc.m_recv_over.over));
 				nc.m_recv_over.wsabuf.buf = nc.m_recv_over.io_buf;
 				nc.m_recv_over.wsabuf.len = MAX_BUF_SIZE;
@@ -847,8 +890,8 @@ void WorkerThread()
 			AcceptEx(l_socket, c_socket, exover->io_buf, NULL,
 				sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &exover->over);
 		}
-								break;
-		case ENUMOP::OP_RANDOM_MOVE: {
+								   break;
+		case WORKER_OP::OP_RANDOM_MOVE: {
 			RandomMoveNPC(user_id);
 			bool keep_alive = false;
 			for (int i = 0; i < NPC_ID_START; ++i)
@@ -858,12 +901,12 @@ void WorkerThread()
 						keep_alive = true;
 						break;
 					}
-			if (true == keep_alive) AddTimer(user_id, ENUMOP::OP_RANDOM_MOVE, 1000);
+			if (true == keep_alive) AddTimer(user_id, WORKER_OP::OP_RANDOM_MOVE, 1000);
 			else g_clients[user_id].m_status = ObjectStatus::OS_Sleep;
 			delete exover;
 		}
-									 break;
-		case ENUMOP::OP_PLAYER_MOVE: {
+										break;
+		case WORKER_OP::OP_PLAYER_MOVE: {
 			g_clients[user_id].lua_l.lock();
 			lua_State *L = g_clients[user_id].L;
 			if (user_id == QUEST_NPC_NUMBER)
@@ -881,7 +924,43 @@ void WorkerThread()
 			g_clients[user_id].lua_l.unlock();
 			delete exover;
 		}
-									 break;
+										break;
+		case WORKER_OP::OP_DB_LOAD_CHARACTER_SUCCESS:
+		{			
+			g_clients[user_id].m_cl.lock();
+			PacketManager::SendLoginSuccessPacket(g_clients, user_id, IsLoginOK);
+			UserCount++;
+
+			// 접속시간 저장 및 타이머 등록
+			g_clients[user_id].m_last_connect_time = high_resolution_clock::now();
+			AddTimer(user_id, WORKER_OP::OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
+
+			g_clients[user_id].m_status = ObjectStatus::OS_Active;
+			g_clients[user_id].m_cl.unlock();
+
+			for (auto &cl : g_clients)
+			{
+				int i = cl.m_id;
+				if (user_id == i) continue;
+				if (true == IsNear(user_id, i))
+				{
+					if (ObjectStatus::OS_Sleep == g_clients[i].m_status)
+					{
+						ActivateNPC(i);
+					}
+					if (ObjectStatus::OS_Active == g_clients[i].m_status)
+					{
+						PacketManager::SendEnterPacket(g_clients, user_id, i);
+						if (true == IsPlayer(i))
+							PacketManager::SendEnterPacket(g_clients, i, user_id);
+					}
+
+					PacketManager::SendStatChangePacket(g_clients, i, g_clients[user_id].m_id);
+				}
+			}			
+			delete exover;
+		}
+										break;
 		default:
 			cout << "Unknown Operation in WorkerThread!\n";
 			while (true);
@@ -1048,7 +1127,12 @@ void Periodically_Save(int user_id)
 	{
 		// 일정 주기 마다 호출할 함수
 		std::wstring wideName = CharArrayToWString(g_clients[user_id].m_name);
-		DB::DB_SaveCharacter(g_clients, g_clients[user_id].m_id, wideName, DSN_NAME);
+
+		DB_TASK db_data;
+		db_data.op_type = DB_OP::DB_OP_SAVE;
+		db_data.user_id = g_clients[user_id].m_id;
+		db_data.inputName = wideName;
+		AddDBTask(db_data);
 
 		// 마지막 호출 시간을 갱신
 		g_clients[user_id].m_last_connect_time = now;
@@ -1078,7 +1162,7 @@ void DoTimer()
 			timer_lock.unlock();
 			switch (ev.event_id)
 			{
-			case ENUMOP::OP_RANDOM_MOVE:
+			case WORKER_OP::OP_RANDOM_MOVE:
 			{
 				ExOver *over = new ExOver;
 				over->op = ev.event_id;
@@ -1087,14 +1171,59 @@ void DoTimer()
 			}
 			break;
 
-			case ENUMOP::OP_CHECK_CONNECT_TIME:
+			case WORKER_OP::OP_CHECK_CONNECT_TIME:
 			{
 				Periodically_Save(ev.obj_id);
 				// 180초(3분) 후 다시 타이머 추가
-				AddTimer(ev.obj_id, ENUMOP::OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
+				AddTimer(ev.obj_id, WORKER_OP::OP_CHECK_CONNECT_TIME, PERIODICALLY_SAVE_TIME);
 			}
 			break;
 			}
+		}
+	}
+}
+
+void AddDBTask(const DB_TASK& task)
+{
+	db_task_mutex.lock();
+	db_task_queue.push(task);
+	db_task_mutex.unlock();
+}
+
+void DoDatabase()
+{
+	while (true)
+	{
+		db_task_mutex.lock();
+		if (!db_task_queue.empty())
+		{
+			DB_TASK db_task = db_task_queue.front();
+			db_task_queue.pop();
+			db_task_mutex.unlock();
+
+			switch (db_task.op_type) {
+			case DB_OP::DB_OP_LOAD:
+			{
+				IsLoginOK = DB::DB_LoadCharacter(g_clients, db_task.user_id, db_task.inputName, NAME_LEN, DSN_NAME);
+				
+				ExOver* over = new ExOver;
+				over->op = WORKER_OP::OP_DB_LOAD_CHARACTER_SUCCESS;
+				over->p_id = db_task.user_id;
+				PostQueuedCompletionStatus(g_iocp, 1, db_task.user_id, &over->over);			
+			}
+				break;
+			case DB_OP::DB_OP_CREATE:
+				DB::DB_CreateCharacter(db_task.inputName, DSN_NAME);
+				break;
+			case DB_OP::DB_OP_SAVE:
+				DB::DB_SaveCharacter(g_clients, db_task.user_id, db_task.inputName, DSN_NAME);
+				break;
+			}
+		}
+		else
+		{
+			db_task_mutex.unlock();
+			this_thread::sleep_for(1ms);
 		}
 	}
 }
@@ -1124,7 +1253,7 @@ int main()
 	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	ExOver accept_over;
 	ZeroMemory(&accept_over.over, sizeof(accept_over.over));
-	accept_over.op = ENUMOP::OP_ACCEPT;
+	accept_over.op = WORKER_OP::OP_ACCEPT;
 	accept_over.c_socket = c_socket;
 	AcceptEx(l_socket, c_socket, accept_over.io_buf, NULL, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, &accept_over.over);
 
@@ -1132,5 +1261,10 @@ int main()
 	for (int i = 0; i < 4; ++i) worker_threads.emplace_back(WorkerThread);
 
 	thread timer_thread{ DoTimer };
+
+	thread db_thread{ DoDatabase };
+
 	for (auto& th : worker_threads) th.join();
+	timer_thread.join();
+	db_thread.join();
 }

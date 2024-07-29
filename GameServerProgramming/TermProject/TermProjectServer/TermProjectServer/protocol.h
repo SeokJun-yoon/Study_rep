@@ -85,6 +85,7 @@ struct sc_packet_login_ok {
 	int maxexp;
 	int	exp;
 	int att;
+	bool IsLoginOK;
 };
 
 struct sc_packet_login_fail {

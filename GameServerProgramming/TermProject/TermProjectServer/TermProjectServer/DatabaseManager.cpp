@@ -96,7 +96,7 @@ void DB::DisconnectDatabase(SQLHENV henv, SQLHDBC hdbc, SQLHSTMT hstmt)
 }
 
 // 캐릭터 정보를 로드하는 함수
-void DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName, const int nameLen, const wchar_t* dsnName)
+bool DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName, const int nameLen, const wchar_t* dsnName)
 {
 	SQLHENV henv = NULL;
 	SQLHDBC hdbc = NULL;
@@ -143,6 +143,7 @@ void DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName
 			if (retcode == SQL_NO_DATA)
 			{
 				wcout << L"No data found." << endl;
+				return false;
 			}
 			else if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
 			{
@@ -179,6 +180,8 @@ void DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName
 		wcout << L"Failed to connect to the database." << endl;
 		HandleDiagnosticRecord(hdbc, SQL_HANDLE_DBC, retcode);
 	}
+
+	return true;
 }
 
 // 캐릭터를 정보를 생성하는 함수

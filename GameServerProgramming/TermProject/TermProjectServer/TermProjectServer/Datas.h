@@ -33,10 +33,10 @@ struct EventType
 {
 	int obj_id;
 	int target_id;
-	ENUMOP event_id;
+	WORKER_OP event_id;
 	std::chrono::high_resolution_clock::time_point wakeup_time;
 
-	EventType(int objectID, int targetID, ENUMOP type, std::chrono::high_resolution_clock::time_point dur)
+	EventType(int objectID, int targetID, WORKER_OP type, std::chrono::high_resolution_clock::time_point dur)
 	{
 		obj_id = objectID;
 		target_id = targetID;
@@ -53,7 +53,7 @@ struct EventType
 // Overlapped ±¸Á¶Ã¼
 struct ExOver {
 	WSAOVERLAPPED	over;
-	ENUMOP			op;
+	WORKER_OP			op;
 	char			io_buf[MAX_BUF_SIZE];
 	union {
 		WSABUF		wsabuf;
@@ -118,4 +118,3 @@ struct Client {
 
 	ObjectType objectType;
 };
-

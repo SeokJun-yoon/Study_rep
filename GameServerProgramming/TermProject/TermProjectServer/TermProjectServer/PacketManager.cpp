@@ -7,7 +7,7 @@ void PacketManager::SendPacket(Client* clients, int userID, void * p)
 	Client& u = clients[userID];
 
 	ExOver* exOver = new ExOver;
-	exOver->op = ENUMOP::OP_SEND;
+	exOver->op = WORKER_OP::OP_SEND;
 	ZeroMemory(&exOver->over, sizeof(exOver->over));
 	exOver->wsabuf.buf = exOver->io_buf;
 	exOver->wsabuf.len = buf[0];
@@ -15,7 +15,7 @@ void PacketManager::SendPacket(Client* clients, int userID, void * p)
 	WSASend(u.m_s, &exOver->wsabuf, 1, NULL, 0, &exOver->over, NULL);
 }
 
-void PacketManager::SendLoginSuccessPacket(Client* clients, int userID)
+void PacketManager::SendLoginSuccessPacket(Client* clients, int userID, bool IsLoginOK)
 {
 	sc_packet_login_ok p;
 	p.size = sizeof(p);
@@ -29,6 +29,7 @@ void PacketManager::SendLoginSuccessPacket(Client* clients, int userID)
 	p.maxhp = clients[userID].m_maxhp;
 	p.x = clients[userID].x;
 	p.y = clients[userID].y;
+	p.IsLoginOK = IsLoginOK;
 
 	SendPacket(clients, userID, &p);
 }
