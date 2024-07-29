@@ -40,21 +40,25 @@ constexpr unsigned char D_RIGHT = 3;
 
 #define PLAYER_MAX_HP 100	// 플레이어 최대 체력
 
-#define S2C_LOGIN_OK		1
-#define S2C_MOVE			2
-#define S2C_ENTER			3
-#define S2C_LEAVE			4
-#define S2C_CHAT			5
-#define S2C_LOGIN_FAIL		6
-#define S2C_CHANGE_STATS	7
-#define S2C_ATTACK			8
+enum class S2C_Packet {
+	S2C_LOGIN_OK = 1,
+	S2C_LOGIN_FAIL,
+	S2C_ENTER,
+	S2C_LEAVE,
+	S2C_MOVE,
+	S2C_ATTACK,
+	S2C_CHANGE_STATS,
+	S2C_CHAT
+};
 
-#define C2S_LOGIN	1
-#define C2S_MOVE	2
-#define C2S_ATTACK  3
-#define C2S_CHAT	4
-#define C2S_LOGOUT	5
-#define C2S_REVIVE	6
+enum class C2S_Packet {
+	C2S_LOGIN = 1,
+	C2S_LOGOUT,
+	C2S_MOVE,
+	C2S_ATTACK,
+	C2S_REVIVE,
+	C2S_CHAT
+};
 
 extern char g_Map[WORLD_WIDTH][WORLD_HEIGHT];
 

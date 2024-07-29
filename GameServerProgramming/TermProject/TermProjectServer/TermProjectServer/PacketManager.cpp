@@ -19,7 +19,7 @@ void PacketManager::SendLoginSuccessPacket(Client* clients, int userID)
 {
 	sc_packet_login_ok p;
 	p.size = sizeof(p);
-	p.type = S2C_LOGIN_OK;
+	p.type = static_cast<char>(S2C_Packet::S2C_LOGIN_OK);
 	strcpy_s(p.name, clients[userID].m_name);
 	p.id = userID;
 	p.level = clients[userID].m_level;
@@ -37,7 +37,7 @@ void PacketManager::SendLoginFailPacket(Client* clients, int userID)
 {
 	sc_packet_login_fail p;
 	p.size = sizeof(p);
-	p.type = S2C_LOGIN_FAIL;
+	p.type = static_cast<char>(S2C_Packet::S2C_LOGIN_FAIL);
 
 	char error[MAX_STR_LEN];
 	sprintf_s(error, "Login Error - Invalid ID !");
@@ -51,7 +51,7 @@ void PacketManager::SendEnterPacket(Client* clients, int userID, int otherID)
 	sc_packet_enter p;
 	p.id = otherID;
 	p.size = sizeof(p);
-	p.type = S2C_ENTER;
+	p.type = static_cast<char>(S2C_Packet::S2C_ENTER);
 	p.x = clients[otherID].x;
 	p.y = clients[otherID].y;
 	p.level = clients[otherID].m_level;
@@ -76,7 +76,7 @@ void PacketManager::SendLeavePacket(Client* clients, int userID, int otherID)
 	sc_packet_leave p;
 	p.id = otherID;
 	p.size = sizeof(p);
-	p.type = S2C_LEAVE;
+	p.type = static_cast<char>(S2C_Packet::S2C_LEAVE);
 
 	clients[userID].m_cl.lock();
 	clients[userID].m_view_list.erase(otherID);
@@ -90,7 +90,7 @@ void PacketManager::SendStatChangePacket(Client* clients, int getID, int setID, 
 	sc_packet_stat_change p;
 	p.id = setID;
 	p.size = sizeof(p);
-	p.type = S2C_CHANGE_STATS;
+	p.type = static_cast<char>(S2C_Packet::S2C_CHANGE_STATS);
 	p.level = clients[setID].m_level;
 	p.hp = clients[setID].m_hp;
 	p.maxhp = clients[setID].m_maxhp;
@@ -115,7 +115,7 @@ void PacketManager::SendMovePacket(Client* clients, int userID, int mover)
 	sc_packet_move p;
 	p.id = mover;
 	p.size = sizeof(p);
-	p.type = S2C_MOVE;
+	p.type = static_cast<char>(S2C_Packet::S2C_MOVE);
 	p.x = clients[mover].x;
 	p.y = clients[mover].y;
 	p.move_time = clients[mover].m_move_time;
@@ -131,7 +131,7 @@ void PacketManager::SendAttackPacket(Client* clients, int userID, int attackerID
 	sc_packet_attack p;
 	p.id = attackerID;
 	p.size = sizeof(p);
-	p.type = S2C_ATTACK;
+	p.type = static_cast<char>(S2C_Packet::S2C_ATTACK);
 	p.x = clients[attackerID].x;
 	p.y = clients[attackerID].y;
 	p.attackrange = clients[attackerID].m_attackrange;
@@ -144,7 +144,7 @@ void PacketManager::SendChatPacket(Client* clients, int userID, int chatter, cha
 	sc_packet_chat p;
 	p.id = chatter;
 	p.size = sizeof(p);
-	p.type = S2C_CHAT;
+	p.type = static_cast<char>(S2C_Packet::S2C_CHAT);
 	strcpy_s(p.mess, msg);
 	p.mess_type = msgType;
 

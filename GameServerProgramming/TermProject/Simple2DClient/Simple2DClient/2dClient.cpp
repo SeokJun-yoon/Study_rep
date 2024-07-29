@@ -403,9 +403,13 @@ sf::Text playerdiemess_text; // mess_type = 5
 void ProcessPacket(char* ptr)
 {
 	static bool first_time = true;
-	switch (ptr[1])
+
+	// ptr[1]ÀÇ °ªÀ» 
+	S2C_Packet packetType = static_cast<S2C_Packet>(ptr[1]);
+
+	switch (packetType)
 	{
-	case S2C_LOGIN_OK:
+	case S2C_Packet::S2C_LOGIN_OK:
 	{
 		sc_packet_login_ok* my_packet = reinterpret_cast<sc_packet_login_ok*>(ptr);
 		g_myid = my_packet->id;
@@ -427,7 +431,7 @@ void ProcessPacket(char* ptr)
 	}
 	break;
 
-	case S2C_ENTER:
+	case S2C_Packet::S2C_ENTER:
 	{
 		sc_packet_enter* my_packet = reinterpret_cast<sc_packet_enter*>(ptr);
 		int id = my_packet->id;
@@ -495,7 +499,7 @@ void ProcessPacket(char* ptr)
 		}
 	}
 	break;
-	case S2C_MOVE:
+	case S2C_Packet::S2C_MOVE:
 	{
 		sc_packet_move* my_packet = reinterpret_cast<sc_packet_move*>(ptr);
 		int other_id = my_packet->id;
@@ -512,7 +516,7 @@ void ProcessPacket(char* ptr)
 	}
 	break;
 
-	case S2C_LEAVE:
+	case S2C_Packet::S2C_LEAVE:
 	{
 		sc_packet_leave* my_packet = reinterpret_cast<sc_packet_leave*>(ptr);
 		int other_id = my_packet->id;
@@ -529,7 +533,7 @@ void ProcessPacket(char* ptr)
 	}
 	break;
 
-	case S2C_ATTACK:
+	case S2C_Packet::S2C_ATTACK:
 	{
 		sc_packet_attack* my_packet = reinterpret_cast<sc_packet_attack*>(ptr);
 		int attacker_id = my_packet->id;
@@ -546,7 +550,7 @@ void ProcessPacket(char* ptr)
 	}
 	break;
 
-	case S2C_CHAT:
+	case S2C_Packet::S2C_CHAT:
 	{
 		sc_packet_chat *my_packet = reinterpret_cast<sc_packet_chat*>(ptr);
 		int other_id = my_packet->id;
@@ -699,7 +703,7 @@ void ProcessPacket(char* ptr)
 	}
 	break;
 
-	case S2C_LOGIN_FAIL:
+	case S2C_Packet::S2C_LOGIN_FAIL:
 	{
 		sc_packet_login_fail* my_packet = reinterpret_cast<sc_packet_login_fail*>(ptr);
 		int id = my_packet->id;
@@ -709,7 +713,7 @@ void ProcessPacket(char* ptr)
 		}
 	}
 
-	case S2C_CHANGE_STATS:
+	case S2C_Packet::S2C_CHANGE_STATS:
 	{
 		sc_packet_stat_change* my_packet = reinterpret_cast<sc_packet_stat_change*>(ptr);
 		int id = my_packet->id;
@@ -911,7 +915,7 @@ void send_packet(void* packet)
 void send_move_packet(unsigned char dir)
 {
 	cs_packet_move m_packet;
-	m_packet.type = C2S_MOVE;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_MOVE);
 	m_packet.size = sizeof(m_packet);
 	m_packet.direction = dir;
 	send_packet(&m_packet);
@@ -920,7 +924,7 @@ void send_move_packet(unsigned char dir)
 void send_attack_packet()
 {
 	cs_packet_attack m_packet;
-	m_packet.type = C2S_ATTACK;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_ATTACK);
 	m_packet.size = sizeof(m_packet);
 	send_packet(&m_packet);
 }
@@ -928,7 +932,7 @@ void send_attack_packet()
 void send_chat_packet(char* mess)
 {
 	cs_packet_chat m_packet;
-	m_packet.type = C2S_CHAT;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_CHAT);
 	m_packet.size = sizeof(m_packet);
 	strcpy_s(m_packet.message, mess);
 	send_packet(&m_packet);
@@ -937,7 +941,7 @@ void send_chat_packet(char* mess)
 void send_logout_packet()
 {
 	cs_packet_logout m_packet;
-	m_packet.type = C2S_LOGOUT;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_LOGOUT);
 	m_packet.size = sizeof(m_packet);
 	send_packet(&m_packet);
 }
@@ -945,7 +949,7 @@ void send_logout_packet()
 void send_revive_packet()
 {
 	cs_packet_logout m_packet;
-	m_packet.type = C2S_REVIVE;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_REVIVE);
 	m_packet.size = sizeof(m_packet);
 	send_packet(&m_packet);
 }
@@ -965,7 +969,7 @@ int main()
 
 	// Login
 	cs_packet_login m_packet;
-	m_packet.type = C2S_LOGIN;
+	m_packet.type = static_cast<char>(C2S_Packet::C2S_LOGIN);
 	m_packet.size = sizeof(m_packet);
 	char name[10];
 	int loginType = 1;

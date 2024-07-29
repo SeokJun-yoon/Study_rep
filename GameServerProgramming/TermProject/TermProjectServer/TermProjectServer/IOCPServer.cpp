@@ -418,25 +418,25 @@ void DoMove(int user_id, int direction)
 
 	for (auto np : new_vl)	// np : new player
 	{
-		if (0 == old_vl.count(np))	// 이동하며 새로 보게 된 플레이어에 대한 처리 (Object가 새로 시야에 들어왔을 때)
+		if (0 == old_vl.count(np))	// 시야에 새로 들어온 오브젝트에 대한 처리
 		{
 			PacketManager::SendEnterPacket(g_clients, user_id, np);
 
 			if (false == IsPlayer(np))	continue;
 			g_clients[np].m_cl.lock();
-			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대 viewlist에 내가 없을때
+			if (0 == g_clients[np].m_view_list.count(user_id))	// 상대방 viewlist에 존재하지 않으면
 			{
 				g_clients[np].m_cl.unlock();
 				PacketManager::SendEnterPacket(g_clients, np, user_id);
 			}
-			else    // 상대 viewlist에 내가 있을 때
+			else    // 상대방 viewlist에 존재할 때
 			{
 				g_clients[np].m_cl.unlock();
 
 				PacketManager::SendMovePacket(g_clients, np, user_id);
 			}
 		}
-		else    // 이동하며 계속 보고 있었던 플레이어에 대한 처리 (계속 시야에 존재하고 있을 때)
+		else    // 시야에 머물고 있는 오브젝트에 대한 처리
 		{
 			if (false == IsPlayer(np)) continue;
 			g_clients[np].m_cl.lock();
@@ -446,7 +446,7 @@ void DoMove(int user_id, int direction)
 
 				PacketManager::SendMovePacket(g_clients, np, user_id);
 			}
-			else  // 상대방의 시야에 내가 있는게 아니라면
+			else  
 			{
 				g_clients[np].m_cl.unlock();
 				PacketManager::SendEnterPacket(g_clients, np, user_id);
@@ -454,7 +454,7 @@ void DoMove(int user_id, int direction)
 		}
 	}
 
-	for (auto old_p : old_vl)		// Object가 시야에서 벗어났을 때
+	for (auto old_p : old_vl)		// 시야에서 벗어난 오브젝트에 대한 처리
 	{
 		if (0 == new_vl.count(old_p))
 		{
@@ -687,8 +687,11 @@ void DoRevive(int id)
 
 void ProcessPacket(int user_id, char* buf)
 {
-	switch (buf[1]) {
-	case C2S_LOGIN: {
+	// buf[1]의 값을 C2S_Packet 타입으로 변환
+	C2S_Packet packetType = static_cast<C2S_Packet>(buf[1]);
+
+	switch (packetType) {
+	case C2S_Packet::C2S_LOGIN: {
 		cs_packet_login* packet = reinterpret_cast<cs_packet_login*>(buf);
 		switch (packet->loginType)
 		{
@@ -705,20 +708,20 @@ void ProcessPacket(int user_id, char* buf)
 		}
 	}
 					break;
-	case C2S_MOVE: {
+	case C2S_Packet::C2S_MOVE: {
 		cs_packet_move* packet = reinterpret_cast<cs_packet_move*>(buf);
 		g_clients[user_id].m_move_time = packet->move_time;
 		DoMove(user_id, packet->direction);
 	}
 				   break;
 
-	case C2S_ATTACK: {
+	case C2S_Packet::C2S_ATTACK: {
 		cs_packet_attack* packet = reinterpret_cast<cs_packet_attack*>(buf);
 		DoAttack(user_id);
 	}
 					 break;
 
-	case C2S_REVIVE: {
+	case C2S_Packet::C2S_REVIVE: {
 		cs_packet_revive* packet = reinterpret_cast<cs_packet_revive*>(buf);
 		DoRevive(user_id);
 	}
