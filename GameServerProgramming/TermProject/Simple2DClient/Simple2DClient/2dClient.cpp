@@ -597,7 +597,7 @@ void ProcessPacket(char* ptr)
 			killmonster_text.setFillColor(color);
 			killmonster_text.setOutlineColor(sf::Color::Blue);
 			killmonster_text.setStyle(sf::Text::Underlined);
-			m_time_out_killmonsterText = high_resolution_clock::now() + 5s;
+			m_time_out_killmonsterText = high_resolution_clock::now() +10s;
 		}
 
 		else if (mess_type == 1) // 플레이어가 공격했을 때
@@ -612,7 +612,7 @@ void ProcessPacket(char* ptr)
 			playerattack_text.setFillColor(color);
 			playerattack_text.setOutlineColor(sf::Color::Blue);
 			playerattack_text.setStyle(sf::Text::Underlined);
-			m_time_out_playerattackText = high_resolution_clock::now() + 2s;
+			m_time_out_playerattackText = high_resolution_clock::now() + 5s;
 		}
 
 		else if (mess_type == 2) // 적 발견 
@@ -656,7 +656,7 @@ void ProcessPacket(char* ptr)
 			playerlevelup_text.setFillColor(color);
 			playerlevelup_text.setOutlineColor(sf::Color::Blue);
 			playerlevelup_text.setStyle(sf::Text::Underlined);
-			m_time_out_playerlevelupText = high_resolution_clock::now() + 5s;
+			m_time_out_playerlevelupText = high_resolution_clock::now() + 30s;
 		}
 
 		else if (mess_type == 4)	// 죽은 플레이어 화면 중앙에 출력할 메시지 
@@ -706,7 +706,7 @@ void ProcessPacket(char* ptr)
 			playerdiemess_text.setFillColor(color);
 			playerdiemess_text.setOutlineColor(sf::Color::Blue);
 			playerdiemess_text.setStyle(sf::Text::Underlined);
-			m_time_out_playerdieText = high_resolution_clock::now() + 5s;
+			m_time_out_playerdieText = high_resolution_clock::now() + 30s;
 		}
 	}
 	break;
