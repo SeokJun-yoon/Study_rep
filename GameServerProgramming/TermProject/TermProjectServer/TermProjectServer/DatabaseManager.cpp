@@ -108,7 +108,7 @@ bool DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName
 	retcode = ConnectDatabase(henv, hdbc, hstmt, dsnName);
 	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
 	{
-		wcout << L"ODBC Connect Ok!" << endl;
+		//wcout << L"ODBC Connect Ok!" << endl;
 
 		// SQLWCHAR 배열에 SQL 쿼리 저장
 		SQLWCHAR query[1024];
@@ -119,7 +119,7 @@ bool DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName
 
 		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO) 
 		{
-			wcout << L"SELECT OK!" << endl;
+			//wcout << L"SELECT OK!" << endl;
 
 			std::vector<SQLWCHAR> Name(nameLen);  // 동적 할당
 			SQLINTEGER x, y, Level, AttackDamage, AttackRange, CurrExp, MaxExp, CurrHp, MaxHp;
@@ -157,9 +157,23 @@ bool DB::DB_LoadCharacter(Client* clients, int user_id, const wstring& inputName
 				clients[user_id].m_hp = CurrHp;
 				clients[user_id].m_maxhp = MaxHp;
 
-				// 데이터 확인 출력 (선택 사항)
-				wprintf(L"Name: %s, Level: %d, Exp: %d, HP: %d/%d\n",
-					Name.data(), Level, CurrExp, CurrHp, MaxHp);
+				//// 데이터 확인 출력 (선택 사항)
+				//wprintf(L"Name: %s, Level: %d, Exp: %d, HP: %d/%d\n",
+				//	Name.data(), Level, CurrExp, CurrHp, MaxHp);
+
+				// 현재 시간 가져오기
+				time_t now = time(0); // 현재 시간을 time_t 형식으로 가져옴
+				tm* localTime = localtime(&now); // time_t를 지역 시간으로 변환
+
+				// 데이터 확인 출력
+				wprintf(L"[ DB Load OK ] [ Name: %s ] / [ Time: %04d-%02d-%02d %02d:%02d:%02d ]\n",
+					inputName.c_str(),
+					localTime->tm_year + 1900, // 연도는 1900년을 기준으로 함
+					localTime->tm_mon + 1,     // 월은 0부터 시작하므로 1을 더함
+					localTime->tm_mday,        // 일
+					localTime->tm_hour,        // 시
+					localTime->tm_min,         // 분
+					localTime->tm_sec);        // 초
 			}
 			else
 			{
@@ -197,7 +211,7 @@ void DB::DB_CreateCharacter(const std::wstring& inputName, const wchar_t* dsnNam
 	retcode = ConnectDatabase(henv, hdbc, hstmt, dsnName);
 	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
 	{
-		wcout << L"ODBC Connect Ok!" << endl;
+		//wcout << L"ODBC Connect Ok!" << endl;
 
 		int x = ((rand() % WORLD_WIDTH) % 6) + 11;
 		int y = ((rand() % WORLD_HEIGHT) % 6) + 16;
@@ -241,7 +255,7 @@ void DB::DB_SaveCharacter(Client * clients, int user_id, const std::wstring & in
 	retcode = ConnectDatabase(henv, hdbc, hstmt, dsnName);
 	if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
 	{
-		wcout << L"ODBC Connect Ok!" << endl;
+		//wcout << L"ODBC Connect Ok!" << endl;
 
 		x = clients[user_id].x;
 		y = clients[user_id].y;
@@ -253,10 +267,23 @@ void DB::DB_SaveCharacter(Client * clients, int user_id, const std::wstring & in
 		MaxHp = clients[user_id].m_maxhp;
 		CurrHp = clients[user_id].m_hp;
 
-		// 데이터 확인 출력 (선택 사항)
-		wprintf(L"Name: %s, Level: %d, Exp: %d / %d , HP: %d / %d \n",
-			inputName.c_str(), Level, CurrExp, MaxExp, CurrHp, MaxHp);
+		//// 데이터 확인 출력 (선택 사항)
+		//wprintf(L"Name: %s, Level: %d, Exp: %d / %d , HP: %d / %d \n",
+		//	inputName.c_str(), Level, CurrExp, MaxExp, CurrHp, MaxHp);
 
+		// 현재 시간 가져오기
+		time_t now = time(0); // 현재 시간을 time_t 형식으로 가져옴
+		tm* localTime = localtime(&now); // time_t를 지역 시간으로 변환
+
+		// 데이터 확인 출력
+		wprintf(L"[ DB Save OK ] [ Name: %s ] / [ Time: %04d-%02d-%02d %02d:%02d:%02d ]\n",
+			inputName.c_str(),
+			localTime->tm_year + 1900, // 연도는 1900년을 기준으로 함
+			localTime->tm_mon + 1,     // 월은 0부터 시작하므로 1을 더함
+			localTime->tm_mday,        // 일
+			localTime->tm_hour,        // 시
+			localTime->tm_min,         // 분
+			localTime->tm_sec);        // 초
 
 		// SQLWCHAR 배열에 SQL 쿼리 저장
 		SQLWCHAR query[1024];
@@ -268,11 +295,11 @@ void DB::DB_SaveCharacter(Client * clients, int user_id, const std::wstring & in
 
 		if (retcode == SQL_SUCCESS || retcode == SQL_SUCCESS_WITH_INFO)
 		{
-			wcout << L"SAVE OK!" << endl;
+			//wcout << L"SAVE OK!" << endl;
 		}
 		else
 		{
-			wcout << L"WRONG SQL" << endl;
+			//wcout << L"WRONG SQL" << endl;
 			HandleDiagnosticRecord(hstmt, SQL_HANDLE_STMT, retcode);
 		}
 

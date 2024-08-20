@@ -110,7 +110,7 @@ void PlayerLevelUp(int user_id)
 			g_clients[user_id].m_hp = PLAYER_MAX_HP;
 			g_clients[user_id].m_maxhp = PLAYER_MAX_HP;
 			g_clients[user_id].m_att = static_cast<int>(PlayerAttackData::PAD_Level2);
-			cout << "Player Level Up!" << endl;
+			//cout << "Player Level Up!" << endl;
 		}
 	}
 
@@ -125,7 +125,7 @@ void PlayerLevelUp(int user_id)
 			g_clients[user_id].m_hp = PLAYER_MAX_HP;
 			g_clients[user_id].m_maxhp = PLAYER_MAX_HP;
 			g_clients[user_id].m_att = static_cast<int>(PlayerAttackData::PAD_Level3);
-			cout << "Player Level Up!" << endl;
+			//cout << "Player Level Up!" << endl;
 		}
 	}
 
@@ -158,7 +158,7 @@ void IsNPCDead(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += static_cast<int>(MonsterGivenExp::MGE_Level1);
-				cout << "Get Level1 EXP(5) !" << endl;
+				//cout << "Get Level1 EXP(5) !" << endl;
 
 				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
@@ -179,7 +179,7 @@ void IsNPCDead(int user_id, int npc_id)
 			}
 			g_clients[npc_id].is_alive = false;
 			g_clients[npc_id].is_active = false;
-			cout << "Monster 1 die! " << endl;
+			//cout << "Monster 1 die! " << endl;
 
 			char mess[100];
 			sprintf_s(mess, "[ ID : %s ] killed [ Monster 1 ]", g_clients[user_id].m_name);	// 킬 메시지 
@@ -198,7 +198,7 @@ void IsNPCDead(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += static_cast<int>(MonsterGivenExp::MGE_Level2);
-				cout << "Get Level2 EXP(8) !" << endl;
+				//cout << "Get Level2 EXP(8) !" << endl;
 
 				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
@@ -236,7 +236,7 @@ void IsNPCDead(int user_id, int npc_id)
 			if (g_clients[npc_id].is_alive == true)
 			{
 				g_clients[user_id].m_exp += static_cast<int>(MonsterGivenExp::MGE_Level3);
-				cout << "Get Level3 EXP(10) !" << endl;
+				//cout << "Get Level3 EXP(10) !" << endl;
 
 				if (g_clients[user_id].m_exp >= g_clients[user_id].m_maxexp)
 				{
@@ -655,7 +655,7 @@ void DoAttack(int id)
 				(g_clients[npc].x == g_clients[id].x + 1 && g_clients[npc].y == g_clients[id].y))		// 시야 안의 npc 중 1칸 이내 범위 판정
 			{
 				g_clients[npc].m_hp -= g_clients[id].m_att;
-				cout << "Attack !" << endl;
+				//cout << "Attack !" << endl;
 				IsNPCDead(id, npc);
 
 				char mess[100];
@@ -1230,6 +1230,8 @@ void DoDatabase()
 
 int main()
 {
+	SetConsoleTitle(L"SJyoon Server.exe");
+
 	WSADATA WSAData;
 	WSAStartup(MAKEWORD(2, 2), &WSAData);
 
