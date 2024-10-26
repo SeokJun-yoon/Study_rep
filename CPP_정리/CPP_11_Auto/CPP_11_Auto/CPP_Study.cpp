@@ -69,5 +69,20 @@ int main()
 		data = 100;
 	}
 
+	// 아무튼 이제 기존의 타입은 잊어버리고 auto만 사용한다?
+	// NO! (주관적 생각)
+	// -> 타이핑이 길어지는 경우 OK
+	// -> 가독성을 위해 일반적으로는 놔두는게 좋다.
+
+	map<int, int> m;
+	auto ok = m.insert(make_pair(1, 100));
+	// 위와 같이 어떤 형식인지 크게 신경 쓸 필요 없을 때,
+	
+	for (auto it = v.begin(); it != v.end(); ++it)
+	{
+		cout << *it << endl;
+	}
+
+
 	return 0;
 }

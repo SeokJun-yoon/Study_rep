@@ -10,6 +10,8 @@ int main()
 {
 	// Modern C++ (C++11)
 
+	int a = 3;
+
 
 
 
