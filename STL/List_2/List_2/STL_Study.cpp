@@ -18,7 +18,7 @@ public:
 
 	}
 
-public:
+public: // Update List ±¸Çö
 
 	Node*	_next;
 	Node*	_prev;
