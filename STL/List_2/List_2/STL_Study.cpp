@@ -55,18 +55,33 @@ public:
 	}
 
 	// --it (전위 연산)
-	Iterator<T>& operator++()
+	Iterator<T>& operator--()
 	{
-		_node = _node->_next;
+		_node = _node->_prev;
 		return *this;
 	}
 
 	// it-- (후위 연산)
-	Iterator<T> operator++(int)
+	Iterator<T> operator--(int)
 	{
 		Iterator<T> temp = *this;
-		_node = _node->_next;
+		_node = _node->_prev;
 		return temp;
+	}
+
+	T& operator*()
+	{
+		return _node->_data;
+	}
+
+	bool operator==(const Iterator& right)
+	{
+		return _node == right._node;
+	}
+
+	bool operator!=(const Iterator& right)
+	{
+		return _node != right._node;
 	}
 
 
@@ -80,7 +95,9 @@ class List
 public:
 	List() : _size(0)
 	{
-
+		_header = new Node<T>();
+		_header->_next = _header;
+		_header->_prev = _header;
 	}
 
 	~List()
@@ -91,7 +108,7 @@ public:
 		delete _header;
 	}
 
-	void push_back(constT& value)
+	void push_back(const T& value)
 	{
 		AddNode(_header, value);
 	}
@@ -145,15 +162,33 @@ public:
 	int size() { return _size; }
 
 public:
+	typedef Iterator<T> iterator;
+
+	iterator begin() { return iterator(_header->_next); }
+	iterator end() { return iterator(_header); }
+
+	iterator insert(iterator it, const T& value)
+	{
+		Node<T>* node = AddNode(it._node, value);
+		return iterator(node);
+	}
+
+	iterator erase(iterator it)
+	{
+		Node<T>* node = RemoveNode(it._node);
+		return iterator(node);
+	}
+
+public:
 	Node<T>*	_header;
 	int			_size;
 };
 
 int main()
 {
-	list<int> li;
+	List<int> li;
 
-	list<int>::iterator eraseIt;
+	List<int>::iterator eraseIt;
 
 	for (int i = 0; i < 10; i++)
 	{
@@ -171,7 +206,7 @@ int main()
 
 	li.erase(eraseIt);
 
-	for (list<int>::iterator it = li.begin(); it != li.end(); ++it)
+	for (List<int>::iterator it = li.begin(); it != li.end(); ++it)
 	{
 		cout << (*it) << endl;
 	}
