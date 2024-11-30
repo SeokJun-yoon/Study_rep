@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35521.163 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Set_Multimap_Multiset", "Set_Multimap_Multiset\Set_Multimap_Multiset.vcxproj", "{5992E4C8-38AA-4718-A8D1-788B0947487C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Debug|x64.ActiveCfg = Debug|x64
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Debug|x64.Build.0 = Debug|x64
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Debug|x86.ActiveCfg = Debug|Win32
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Debug|x86.Build.0 = Debug|Win32
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Release|x64.ActiveCfg = Release|x64
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Release|x64.Build.0 = Release|x64
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Release|x86.ActiveCfg = Release|Win32
+		{5992E4C8-38AA-4718-A8D1-788B0947487C}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
