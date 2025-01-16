@@ -9,6 +9,12 @@ using namespace std;
 // 4) 간접 멤버 연산자
 
 
+struct Player
+{
+	int hp;	// +0
+	int damage;	// +4
+};
+
 int main()
 {
 	int number = 1;
@@ -34,11 +40,31 @@ int main()
 	// 즉, 1을 더하면 = 바구니 1개 이동시켜라
 	// 3을 더하면 = 바구니 3개 이동시켜라
 
-	pointer += 1;	// 확인해보면 +1을 했는데 주소값이 4가 증가
+	//pointer += 1;	// 확인해보면 +1을 했는데 주소값이 4가 증가
 
 	// 디버깅을 해보면, pointer에 들어가 있는 값(number의 주소값)이 4만큼 증가한다는 것을 알 수 있음.
 	// 이 4라는 숫자는 현재 포인터 변수인 pointer을 따라가면 int형의 자료가 존재하기 때문임.
 	// 만약 int가 아니라 다른 자료형이었다면 4가 증가하지 않을수도 있다.
+
+	// 3) 간접 연산자 (*)
+	// - 포탈을 타고 해당 주소로 이동하는 원리
+	number = 3;
+	*pointer = 3;
+
+	Player player;
+	player.hp = 100;
+	player.damage = 10;
+
+	Player* playerPtr = &player;
+	(*playerPtr).hp = 200;
+	(*playerPtr).damage = 200;
+
+	// 4) 간접 멤버 연산자 (->)
+	// . 구조체의 특정 멤버를 다룰 때 사용 (어셈블리 언어로 확인해보면 .은 사실상 그냥 덧셈)
+	// -> 는 *와 .을 한 번에
+
+	playerPtr->hp = 200;
+	playerPtr->damage = 200;
 
 	return 0;
 }
