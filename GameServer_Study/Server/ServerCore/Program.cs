@@ -6,60 +6,48 @@ namespace ServerCore
 {
     class Program
     {
-        static void MainThread(object state)
+        volatile static bool _stop = false;  // 전역으로 선언된 변수는, main과 ThreadMain 모두에서 접근이 가능
+        // volatile을 앞에 붙이면, 최적화를 하지 말라는 의미
+
+        // volatile는 C++과 C#에서 약간 다른 부분이 있는데,
+        // 둘 다 최적화를 하지 말아달라는 의미는 같지만
+        // C#는 조금 더 추가적인 내용이 있다.
+        
+        // 그래서 사실 volatile 보다는 추후의 memory barrier나 lock, atomic 등을 사용하는 것이 좋다.
+
+        static void ThreadMain()
         {
-            for (int i=0; i<5; i++)
-                Console.WriteLine("Hello Thread!");
+            Console.WriteLine("쓰레드 시작!");
+
+            while (_stop==false)
+            {
+                // 누군가가 stop 신호를 해주기를 기다린다.
+            }
+
+            Console.WriteLine("쓰레드 종료!");
         }
 
         static void Main(string[] args)
         {
+            Task t = new Task(ThreadMain);
+            t.Start();
 
-            ThreadPool.SetMinThreads(1, 1);
-            ThreadPool.SetMaxThreads(5, 5);
+            Thread.Sleep(1000);
 
-            for (int i=0;i<5;i++)
-            {
-                // 오래 걸리는 작업일 경우, 아래와 같이 task를 활용하여 .LongRunning을 통해 오래 걸림을 알려주어 
-                // 모든 쓰레드가 이 task를 하는데 투입되지 않도록 한다.
-                Task t = new Task(() => { while (true) { } }, TaskCreationOptions.LongRunning);
-                t.Start();
-            }
+            _stop = true;
 
-            //for (int i = 0; i < 4; i++)
-            //    ThreadPool.QueueUserWorkItem((obj) => { while (true) { } });
+            Console.WriteLine("Stop 호출");
+            Console.WriteLine("종료 대기중");
 
-            ThreadPool.QueueUserWorkItem(MainThread);
-            // Thread Pool?
-            // 임시로 알바를 쓰듯이, 대기하고있는 쓰레드를 갖다 쓴다.
-
-            // * 쓰레드 풀링?
+            t.Wait();   // Thread 사용시에는 join과 같음
+            // Release 모드로 실행 시, Wait 상태를 빠져나오지 못함.
+            // 멀티쓰레드 환경에서는 이런 일이 발생할 수 있다.
 
 
-            // 아래와 같이 쓰레드를 원하는 갯수(아래에선 1000개) 만큼 생성하고 실행하게끔도 가능은 함.
-            // 하지만, CPU 코어가 쓰레드를 바꾸는 과정에서의 비용이 더 크기 때문에 비효율적이 됨.
-            // 그래서 무조건 쓰레드를 많이 만드는 것만이 좋은 방법은 절대 아니다.
-
-            //for (int i=0;i<1000;i++)
-            //{
-            //    Thread t = new Thread(MainThread);
-            //    //t.Name = "Test Thread"; // Thread 이름 지정 가능
-            //    t.IsBackground = true;
-            //    t.Start();
-            //}
-
-            //Console.WriteLine("Waiting for Thread!");
-
-            //t.Join();   // C++ 도 같은 함수를 사용함
-            //Console.WriteLine("Hello World!");
-
-            while (true)
-            {
-
-            }
+            Console.WriteLine("종료 성공");
         }
     }
 }
 
 
-// C#에서는 사실상 직접적으로 쓰레드를 관리할 일은 적을 것. 쓰레드 풀을 활용하는 것이 좋음.
+
